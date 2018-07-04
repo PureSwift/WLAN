@@ -55,7 +55,7 @@ public final class DarwinWLAN: NSObject, WLANManager {
      */
     public func setPower(_ power: Bool, for interface: WLANInterface) throws {
         
-        try self.interface(for: interface).setPower(power)
+        try client.interface(for: interface).setPower(power)
     }
     
     /**
@@ -68,7 +68,7 @@ public final class DarwinWLAN: NSObject, WLANManager {
      */
     public func scan(with ssid: Data? = nil, for interface: WLANInterface) throws -> [WLANNetwork] {
         
-        return try self.interface(for: interface).scanForNetworks(withSSID: ssid).map { WLANNetwork($0) }
+        return try client.interface(for: interface).scanForNetworks(withSSID: ssid).map { WLANNetwork($0) }
     }
     
     /**
@@ -82,10 +82,8 @@ public final class DarwinWLAN: NSObject, WLANManager {
                           password: String? = nil,
                           for interface: WLANInterface) throws {
         
-        let wlanInterface = try self.interface(for: interface)
-        
-        guard let wlanNetwork = wlanInterface.cachedScanResults()?.first(where: { $0.ssidData == network.ssid })
-            else { throw WLANError.invalidNetwork(network) }
+        let wlanInterface = try client.interface(for: interface)
+        let wlanNetwork = try wlanInterface.network(for: network)
         
         try wlanInterface.associate(to: wlanNetwork, password: password)
     }
@@ -97,21 +95,34 @@ public final class DarwinWLAN: NSObject, WLANManager {
      */
     public func disassociate(interface: WLANInterface) throws {
         
-        try self.interface(for: interface).disassociate()
+        try client.interface(for: interface).disassociate()
     }
+}
+
+// MARK: - Darwin
+
+internal extension CWWiFiClient {
     
-    // MARK: - Private Methods
-    
-    private func interface(for interface: WLANInterface) throws -> CWInterface {
+    func interface(for interface: WLANInterface) throws -> CWInterface {
         
-        guard let wlanInterface = client.interfaces()?.first(where: { $0.interfaceName == interface.name })
+        guard let wlanInterface = self.interfaces()?.first(where: { $0.interfaceName == interface.name })
             else { throw WLANError.invalidInterface(interface) }
         
         return wlanInterface
     }
 }
 
-// MARK: - Darwin
+internal extension CWInterface {
+    
+    func network(for network: WLANNetwork) throws -> CWNetwork {
+        
+        guard let wlanNetwork = self.cachedScanResults()?
+            .first(where: { $0.ssidData == network.ssid })
+            else { throw WLANError.invalidNetwork(network) }
+        
+        return wlanNetwork
+    }
+}
 
 internal extension WLANInterface {
     
