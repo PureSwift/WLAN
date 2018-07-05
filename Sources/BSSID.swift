@@ -89,21 +89,11 @@ extension BSSID: RawRepresentable {
     /// Converts a 48 bit ethernet number to its string representation.
     public init?(rawValue: String) {
         
-        // verify string size
+        // verify string
         guard rawValue.utf8.count == 17
             else { return nil }
         
-        var bytes: ByteValue = (0, 0, 0, 0, 0, 0)
-        
-        guard withUnsafeMutablePointer(to: &bytes, {
-            sscanf(rawValue, "%x:%x:%x:%x:%x:%x",
-                   $0,
-                   $0.advanced(by: 1),
-                   $0.advanced(by: 2),
-                   $0.advanced(by: 3),
-                   $0.advanced(by: 4),
-                   $0.advanced(by: 5)) == 6
-        }) else { return nil }
+        var bytes = Data(repeating: 0, count: 6)
         
         // parse bytes
         guard rawValue.withCString({ (cString) -> Bool in
@@ -125,10 +115,10 @@ extension BSSID: RawRepresentable {
             
         }) else { return nil }
         
-        guard let BSSID = BSSID(data: Data(bytes))
+        guard let bigEndian = BSSID(data: Data(bytes))
             else { fatalError("Could not initialize \(BSSID.self) from \(bytes)") }
         
-        self.init(bigEndian: BSSID)
+        self.init(bigEndian: bigEndian)
     }
     
     public var rawValue: String {

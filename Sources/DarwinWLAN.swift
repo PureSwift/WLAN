@@ -118,7 +118,7 @@ internal extension CWInterface {
     func network(for network: WLANNetwork) throws -> CWNetwork {
         
         guard let wlanNetwork = self.cachedScanResults()?
-            .first(where: { $0.ssidData == network.ssid })
+            .first(where: { $0.ssidData == network.ssid.data && $0.bssid == network.bssid.description })
             else { throw WLANError.invalidNetwork(network) }
         
         return wlanNetwork

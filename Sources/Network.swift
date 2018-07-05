@@ -13,11 +13,15 @@ import Foundation
  */
 public struct WLANNetwork {
     
-    public let ssid: Data
+    public let ssid: SSID
     
-    public init(ssid: Data) {
+    public let bssid: BSSID
+    
+    public init(ssid: SSID,
+                bssid: BSSID) {
         
         self.ssid = ssid
+        self.bssid = bssid
     }
 }
 
@@ -28,6 +32,7 @@ extension WLANNetwork: Equatable {
     public static func == (rhs: WLANNetwork, lhs: WLANNetwork) -> Bool {
         
         return rhs.ssid == lhs.ssid
+            && rhs.bssid == rhs.bssid
     }
 }
 
@@ -37,6 +42,6 @@ extension WLANNetwork: Hashable {
     
     public var hashValue: Int {
         
-        return ssid.hashValue
+        return ssid.hashValue ^ bssid.hashValue
     }
 }

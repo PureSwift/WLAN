@@ -11,12 +11,12 @@ import Foundation
 /**
  Service Set Identifier
  
-  An SSID is a unique ID that consists of 32 characters and is used for naming wireless networks. When multiple wireless networks overlap in a certain location, SSIDs make sure that data gets sent to the correct destination.
+  An SSID is a unique ID that consists of 1-32 octets and is used for naming wireless networks. When multiple wireless networks overlap in a certain location, SSIDs make sure that data gets sent to the correct destination.
  */
 public struct SSID {
     
     /// Maximum Length
-    internal static let length = 32
+    internal static let length = (min: 1, max: 32)
     
     // MARK: - Properties
     
@@ -26,7 +26,8 @@ public struct SSID {
     
     public init?(data: Data) {
         
-        guard data.count < SSID.length
+        guard data.count <= SSID.length.max,
+            data.count >= SSID.length.min
             else { return nil }
         
         self.data = data
@@ -84,7 +85,14 @@ extension SSID: ExpressibleByStringLiteral {
     
     public init(stringLiteral string: String) {
         
-        // truncate
-        self.data = Data(string.utf8.prefix(SSID.length))
+        if string.isEmpty {
+            
+            self.data = Data(" ".utf8)
+            
+        } else {
+            
+            // truncate if neccesary
+            self.data = Data(string.utf8.prefix(SSID.length.max))
+        }
     }
 }
