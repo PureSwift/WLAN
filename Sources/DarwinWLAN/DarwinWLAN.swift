@@ -6,11 +6,14 @@
 //  Copyright © 2018 PureSwift. All rights reserved.
 //
 
+#if os(macOS)
+
 import Foundation
 import CoreWLAN
+import WLAN
 
-@objc(DarwinWLAN)
-public final class DarwinWLAN: NSObject, WLANManager {
+/// Darwin WLAN Manager
+public final class DarwinWLANManager: NSObject, WLANManager {
     
     // MARK: - Properties
     
@@ -103,53 +106,4 @@ public final class DarwinWLAN: NSObject, WLANManager {
     }
 }
 
-// MARK: - Darwin
-
-internal extension CWWiFiClient {
-    
-    func interface(for interface: WLANInterface) throws -> CWInterface {
-        
-        guard let wlanInterface = self.interfaces()?
-            .first(where: { $0.interfaceName == interface.name })
-            else { throw WLANError.invalidInterface(interface) }
-        
-        return wlanInterface
-    }
-}
-
-internal extension CWInterface {
-    
-    func network(for network: WLANNetwork) throws -> CWNetwork {
-        
-        guard let wlanNetwork = self.cachedScanResults()?
-            .first(where: { $0.ssidData == network.ssid.data && $0.bssid == network.bssid.description })
-            else { throw WLANError.invalidNetwork(network) }
-        
-        return wlanNetwork
-    }
-}
-
-internal extension WLANInterface {
-    
-    init(_ coreWLAN: CWInterface) {
-        
-        guard let interfaceName = coreWLAN.interfaceName
-            else { fatalError("Invalid values") }
-        
-        self.init(name: interfaceName)
-    }
-}
-
-internal extension WLANNetwork {
-    
-    init(_ coreWLAN: CWNetwork) {
-        
-        guard let ssidData = coreWLAN.ssidData,
-            let ssid = SSID(data: ssidData),
-            let bssidString = coreWLAN.bssid,
-            let bssid = BSSID(rawValue: bssidString)
-            else { fatalError("Invalid values") }
-        
-        self.init(ssid: ssid, bssid: bssid)
-    }
-}
+#endif
