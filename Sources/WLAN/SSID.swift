@@ -95,4 +95,14 @@ extension SSID: ExpressibleByStringLiteral {
             self.data = Data(string.utf8.prefix(SSID.length.max))
         }
     }
+    
+    public init(unicodeScalarLiteral value: String) {
+        
+        self.init(stringLiteral: value)
+    }
+    
+    public init(extendedGraphemeClusterLiteral value: String) {
+        
+        self.init(stringLiteral: value)
+    }
 }
