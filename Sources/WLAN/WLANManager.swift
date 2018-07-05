@@ -26,7 +26,7 @@ public protocol WLANManager {
      If ssid parameter is present, a directed scan will be performed by the interface, otherwise a broadcast scan will be performed. This method will block for the duration of the scan.
      
      - Parameter ssid: The SSID for which to scan.
-     - Paramter interface: The network interface.
+     - Parameter interface: The network interface.
      */
     func scan(with ssid: SSID?, for interface: WLANInterface) throws -> [WLANNetwork]
     
@@ -34,7 +34,7 @@ public protocol WLANManager {
      Sets the interface power state.
      
      - Parameter power: A Boolean value corresponding to the power state. NO indicates the "OFF" state.
-     - Paramter interface: The network interface.
+     - Parameter interface: The network interface.
      */
     func setPower(_ power: Bool, for interface: WLANInterface) throws
     

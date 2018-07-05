@@ -12,6 +12,8 @@ import XCTest
 
 #if os(macOS)
 @testable import DarwinWLAN
+#elseif os(Linux)
+@testable import LinuxWLAN
 #endif
 
 final class WLANTests: XCTestCase {
@@ -22,8 +24,8 @@ final class WLANTests: XCTestCase {
     
     func testSSID() {
         
-        XCTAssertNil(SSID(string: ""))
-        XCTAssertNil(SSID(string: "Too Long Wifi Network Name Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua"))
+        XCTAssertNil(SSID(string: ""), "SSID must be 1-32 octets")
+        XCTAssertNil(SSID(string: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua"), "SSID must be 1-32 octets")
         
         XCTAssertEqual(SSID(string: "ColemanCDA")?.description, "ColemanCDA")
         XCTAssertEqual(SSID(string: "ColemanCDA"), "ColemanCDA")
@@ -31,23 +33,30 @@ final class WLANTests: XCTestCase {
     
     func testBSSID() {
         
+        XCTAssertNil(BSSID(rawValue: ""))
+        XCTAssertNil(BSSID(rawValue: "D8C77141C1DB"))
+        XCTAssertNil(BSSID(rawValue: "D8:C7:71:41:C1:DB:"))
+        
         XCTAssertEqual(BSSID(rawValue: "D8:C7:71:41:C1:DB")?.description, "D8:C7:71:41:C1:DB")
         XCTAssertEqual(BSSID(rawValue: "18:A6:F7:99:81:90")?.description, "18:A6:F7:99:81:90")
     }
     
-    #if os(macOS)
-    func testDarwinWLAN() {
+    func testWLAN() {
         
         do {
             
+            #if os(macOS)
             let wlanManager = DarwinWLANManager()
+            #elseif os(Linux)
+            let wlanManager = try LinuxWLANManager()
+            #endif
             
             guard let interface = wlanManager.interface
                 else { XCTFail(); return }
             
             print("Interface: \(interface)")
             
-            let networks = try wlanManager.scan(for: interface)
+            let networks = try wlanManager.scan(with: nil, for: interface)
             
             XCTAssert(networks.isEmpty == false)
             
@@ -57,5 +66,4 @@ final class WLANTests: XCTestCase {
         
         catch { XCTFail("\(error)"); return }
     }
-    #endif
 }

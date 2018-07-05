@@ -9,17 +9,33 @@
 import Foundation
 import WLAN
 
-public final class LinuxWLANManager {
+public final class LinuxWLANManager: WLANManager {
+    
+    // MARK: - Properties
+    
+    internal let handle: CInt
+    
+    // MARK: - Initialization
+    
+    public init() throws {
+        
+        self.handle = 0
+    }
+    
+    // MARK: - Methods
     
     /// Returns the default Wi-Fi interface.
-    var interface: WLANInterface? { fatalError() }
+    public var interface: WLANInterface? { fatalError() }
     
     /**
      Returns all available Wi-Fi interfaces.
      
      - Returns: An array of `WLANInterface`, representing all of the available Wi-Fi interfaces in the system.
      */
-    var interfaces: [WLANInterface] { fatalError() }
+    public var interfaces: [WLANInterface] {
+        
+        fatalError()
+    }
     
     /**
      Scans for networks.
@@ -27,22 +43,22 @@ public final class LinuxWLANManager {
      If ssid parameter is present, a directed scan will be performed by the interface, otherwise a broadcast scan will be performed. This method will block for the duration of the scan.
      
      - Parameter ssid: The SSID for which to scan.
-     - Paramter interface: The network interface.
+     - Parameter interface: The network interface.
      */
-    func scan(with ssid: SSID?, for interface: WLANInterface) throws -> [WLANNetwork] { fatalError() }
+    public func scan(with ssid: SSID? = nil, for interface: WLANInterface) throws -> [WLANNetwork] { fatalError() }
     
     /**
      Sets the interface power state.
      
      - Parameter power: A Boolean value corresponding to the power state. NO indicates the "OFF" state.
-     - Paramter interface: The network interface.
+     - Parameter interface: The network interface.
      */
-    func setPower(_ power: Bool, for interface: WLANInterface) throws { fatalError() }
+    public func setPower(_ power: Bool, for interface: WLANInterface) throws { fatalError() }
     
     /**
      Disassociates from the current network.
      
      This method has no effect if the interface is not associated to a network.
      */
-    func disassociate(interface: WLANInterface) throws { fatalError() }
+    public func disassociate(interface: WLANInterface) throws { fatalError() }
 }
