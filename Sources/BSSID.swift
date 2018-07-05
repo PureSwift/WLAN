@@ -8,18 +8,22 @@
 
 #if os(Linux)
 import Glibc
-#elseif os(OSX) || os(iOS)
-import Darwin.C
+#elseif os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
+import Darwin
 #endif
 
 import Foundation
 
-/// WLAN address.
+/// WLAN BSSID.
+///
+/// Represents a unique 48-bit identifier that follows MAC address conventions.
+///
+/// - Note: The value is always stored in host byte order.
 public struct BSSID: ByteValue {
     
     // MARK: - ByteValueType
     
-    /// Raw Bluetooth Address 6 byte (48 bit) value.
+    /// Raw BSSID 6 byte (48 bit) value.
     public typealias ByteValue = (UInt8, UInt8, UInt8, UInt8, UInt8, UInt8)
     
     public static var bitWidth: Int { return 48 }
@@ -39,23 +43,23 @@ public struct BSSID: ByteValue {
 public extension BSSID {
     
     /// The minimum representable value in this type.
-    public static var min: Address { return Address(bytes: (.min, .min, .min, .min, .min, .min)) }
+    public static var min: BSSID { return BSSID(bytes: (.min, .min, .min, .min, .min, .min)) }
     
     /// The maximum representable value in this type.
-    public static var max: Address { return Address(bytes: (.max, .max, .max, .max, .max, .max)) }
+    public static var max: BSSID { return BSSID(bytes: (.max, .max, .max, .max, .max, .max)) }
     
-    public static var zero: Address { return .min }
+    public static var zero: BSSID { return .min }
 }
 
 // MARK: - Data
 
-public extension Address {
+public extension BSSID {
     
     public static var length: Int { return 6 }
     
     public init?(data: Data) {
         
-        guard data.count == Address.length
+        guard data.count == BSSID.length
             else { return nil }
         
         self.bytes = (data[0], data[1], data[2], data[3], data[4], data[5])
@@ -69,27 +73,37 @@ public extension Address {
 
 // MARK: - Byte Swap
 
-extension Address: ByteSwap {
+extension BSSID: ByteSwap {
     
-    /// A representation of this address with the byte order swapped.
-    public var byteSwapped: Address {
+    /// A representation of this BSSID with the byte order swapped.
+    public var byteSwapped: BSSID {
         
-        return Address(bytes: (bytes.5, bytes.4, bytes.3, bytes.2, bytes.1, bytes.0))
+        return BSSID(bytes: (bytes.5, bytes.4, bytes.3, bytes.2, bytes.1, bytes.0))
     }
 }
 
 // MARK: - RawRepresentable
 
-extension Address: RawRepresentable {
+extension BSSID: RawRepresentable {
     
-    /// Initialize a Bluetooth Address from its big endian string representation (e.g. `00:1A:7D:DA:71:13`).
+    /// Converts a 48 bit ethernet number to its string representation.
     public init?(rawValue: String) {
         
-        // verify string
+        // verify string size
         guard rawValue.utf8.count == 17
             else { return nil }
         
-        var bytes = Data(repeating: 0, count: 6)
+        var bytes: ByteValue = (0, 0, 0, 0, 0, 0)
+        
+        guard withUnsafeMutablePointer(to: &bytes, {
+            sscanf(rawValue, "%x:%x:%x:%x:%x:%x",
+                   $0,
+                   $0.advanced(by: 1),
+                   $0.advanced(by: 2),
+                   $0.advanced(by: 3),
+                   $0.advanced(by: 4),
+                   $0.advanced(by: 5)) == 6
+        }) else { return nil }
         
         // parse bytes
         guard rawValue.withCString({ (cString) -> Bool in
@@ -111,41 +125,25 @@ extension Address: RawRepresentable {
             
         }) else { return nil }
         
-        guard let address = Address(data: Data(bytes))
-            else { fatalError("Could not initialize \(Address.self) from \(bytes)") }
+        guard let BSSID = BSSID(data: Data(bytes))
+            else { fatalError("Could not initialize \(BSSID.self) from \(bytes)") }
         
-        self.init(bigEndian: address)
+        self.init(bigEndian: BSSID)
     }
     
     public var rawValue: String {
         
         let bytes = self.bigEndian.bytes
         
-        let byteValue = [bytes.0, bytes.1, bytes.2, bytes.3, bytes.4, bytes.5]
-        
-        var string = ""
-        
-        for (index, byte) in byteValue.enumerated() {
-            
-            string += byte.toHexadecimal()
-            
-            if index != byteValue.count - 1 {
-                
-                string += ":"
-            }
-        }
-        
-        assert(string.utf8.count == 17, "\"\(string)\" should be 17 characters")
-        
-        return string
+        return String(format: "%x:%x:%x:%x:%x:%x", bytes.0, bytes.1, bytes.2, bytes.3, bytes.4, bytes.5)
     }
 }
 
 // MARK: - Equatable
 
-extension Address: Equatable {
+extension BSSID: Equatable {
     
-    public static func == (lhs: Address, rhs: Address) -> Bool {
+    public static func == (lhs: BSSID, rhs: BSSID) -> Bool {
         
         return lhs.bytes.0 == rhs.bytes.0
             && lhs.bytes.1 == rhs.bytes.1
@@ -158,7 +156,7 @@ extension Address: Equatable {
 
 // MARK: - Hashable
 
-extension Address: Hashable {
+extension BSSID: Hashable {
     
     public var hashValue: Int {
         
@@ -172,7 +170,7 @@ extension Address: Hashable {
 
 // MARK: - CustomStringConvertible
 
-extension Address: CustomStringConvertible {
+extension BSSID: CustomStringConvertible {
     
     public var description: String { return rawValue }
 }

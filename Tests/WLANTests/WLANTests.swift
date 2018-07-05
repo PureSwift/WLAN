@@ -8,16 +8,16 @@
 
 import Foundation
 import XCTest
-import WLAN
+@testable import WLAN
 
-class WLANTests: XCTestCase {
-    func testExample() {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
-        //// XCTAssertEqual(WLAN().text, "Hello, World!")
-    }
+final class WLANTests: XCTestCase {
     
     static var allTests = [
         ("testExample", testExample),
-    ]
+        ]
+    
+    func testBSSID() {
+        
+        
+    }
 }

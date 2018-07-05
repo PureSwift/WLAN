@@ -29,6 +29,15 @@
 		6ED47D7C20EE7FCE00364408 /* SSID.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EF1498720ECB6D500918866 /* SSID.swift */; };
 		6ED47D7D20EE7FCE00364408 /* SSID.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EF1498720ECB6D500918866 /* SSID.swift */; };
 		6ED47D7E20EE7FCF00364408 /* SSID.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EF1498720ECB6D500918866 /* SSID.swift */; };
+		6ED47D7F20EE835E00364408 /* BSSID.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EF1498920ECB71000918866 /* BSSID.swift */; };
+		6ED47D8020EE835F00364408 /* BSSID.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EF1498920ECB71000918866 /* BSSID.swift */; };
+		6ED47D8120EE835F00364408 /* BSSID.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EF1498920ECB71000918866 /* BSSID.swift */; };
+		6ED47D8220EE836B00364408 /* ScanRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EF1498B20ECB97500918866 /* ScanRecord.swift */; };
+		6ED47D8320EE836C00364408 /* ScanRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EF1498B20ECB97500918866 /* ScanRecord.swift */; };
+		6ED47D8420EE836C00364408 /* ScanRecord.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EF1498B20ECB97500918866 /* ScanRecord.swift */; };
+		6ED47D8520EE837400364408 /* DarwinWLAN.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EBE7E0C20EC7D3100D92225 /* DarwinWLAN.swift */; };
+		6ED47D8620EE837500364408 /* DarwinWLAN.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EBE7E0C20EC7D3100D92225 /* DarwinWLAN.swift */; };
+		6ED47D8720EE837500364408 /* DarwinWLAN.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EBE7E0C20EC7D3100D92225 /* DarwinWLAN.swift */; };
 		6EF1498320ECB1DC00918866 /* Network.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EF1498220ECB1DC00918866 /* Network.swift */; };
 		6EF1498420ECB3E200918866 /* Network.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EF1498220ECB1DC00918866 /* Network.swift */; };
 		6EF1498520ECB3E200918866 /* Network.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EF1498220ECB1DC00918866 /* Network.swift */; };
@@ -517,6 +526,7 @@
 				6EF1498320ECB1DC00918866 /* Network.swift in Sources */,
 				6EF1498C20ECB97500918866 /* ScanRecord.swift in Sources */,
 				6ED47D7C20EE7FCE00364408 /* SSID.swift in Sources */,
+				6ED47D8520EE837400364408 /* DarwinWLAN.swift in Sources */,
 				6EBE7E1020ECABFC00D92225 /* WLANManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -536,10 +546,13 @@
 				8933C7871EB5B820000D00A4 /* Interface.swift in Sources */,
 				6E5ABC0D20EDAA640051F960 /* ByteValue.swift in Sources */,
 				6E5ABC0920EDAA640051F960 /* ByteSwap.swift in Sources */,
+				6ED47D8020EE835F00364408 /* BSSID.swift in Sources */,
 				6EBE7E1820ECAF6900D92225 /* Error.swift in Sources */,
 				6EF1498520ECB3E200918866 /* Network.swift in Sources */,
 				6ED47D7D20EE7FCE00364408 /* SSID.swift in Sources */,
 				6EBE7E1220ECAD0C00D92225 /* WLANManager.swift in Sources */,
+				6ED47D8620EE837500364408 /* DarwinWLAN.swift in Sources */,
+				6ED47D8320EE836C00364408 /* ScanRecord.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -550,10 +563,13 @@
 				8933C7881EB5B820000D00A4 /* Interface.swift in Sources */,
 				6E5ABC0E20EDAA640051F960 /* ByteValue.swift in Sources */,
 				6E5ABC0A20EDAA640051F960 /* ByteSwap.swift in Sources */,
+				6ED47D8120EE835F00364408 /* BSSID.swift in Sources */,
 				6EBE7E1920ECAF6900D92225 /* Error.swift in Sources */,
 				6EF1498620ECB3E300918866 /* Network.swift in Sources */,
 				6ED47D7E20EE7FCF00364408 /* SSID.swift in Sources */,
 				6EBE7E1320ECAD0D00D92225 /* WLANManager.swift in Sources */,
+				6ED47D8720EE837500364408 /* DarwinWLAN.swift in Sources */,
+				6ED47D8420EE836C00364408 /* ScanRecord.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -568,6 +584,8 @@
 				6E5ABC0C20EDAA640051F960 /* ByteValue.swift in Sources */,
 				6EBE7E1120ECAD0C00D92225 /* WLANManager.swift in Sources */,
 				6E5ABC0820EDAA640051F960 /* ByteSwap.swift in Sources */,
+				6ED47D8220EE836B00364408 /* ScanRecord.swift in Sources */,
+				6ED47D7F20EE835E00364408 /* BSSID.swift in Sources */,
 				8933C7861EB5B820000D00A4 /* Interface.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
