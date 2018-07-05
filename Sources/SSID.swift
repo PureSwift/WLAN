@@ -12,23 +12,23 @@ public struct SSID {
     
     // MARK: - ByteValue
     
-    /// Raw Bluetooth Low Energy Advertising Data 31 byte value.
-    public typealias ByteValue = (UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8)
+    /// Raw 32 byte value.
+    public typealias ByteValue = (UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8)
     
     // MARK: - Properties
     
     public var length: UInt8 {
         
-        didSet { precondition(length <= 31, "LE Advertising Data can only less than or equal to 31 octets") }
+        didSet { precondition(length <= 32, "SSID can only less than or equal to 32 octets") }
     }
     
-    public var bytes: ByteValue
+    public var data: Data
     
     // MARK: - Initialization
     
     public init(length: UInt8, bytes: ByteValue) {
         
-        precondition(length <= 31, "LE Advertising Data can only less than or equal to 31 octets")
+        precondition(length <= 32, "SSID can only less than or equal to 32 octets")
         
         self.bytes = bytes
         self.length = length
@@ -38,6 +38,14 @@ public struct SSID {
         
         self.length = 0
         self.bytes = (0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+    }
+    
+    public init?(string: String) {
+        
+        guard let data = string.data(using: .utf8)
+            else { return nil }
+        
+        self.init(data: )
     }
     
     /// Get the byte at the specified index.
@@ -77,6 +85,7 @@ public struct SSID {
             case 28: return bytes.28
             case 29: return bytes.29
             case 30: return bytes.30
+            case 31: return bytes.31
             default: fatalError("Invalid index \(index)")
             }
         }
@@ -115,6 +124,7 @@ public struct SSID {
             case 28: bytes.28 = newValue
             case 29: bytes.29 = newValue
             case 30: bytes.30 = newValue
+            case 31: bytes.31 = newValue
             default: fatalError("Invalid index \(index)")
             }
         }
@@ -123,9 +133,9 @@ public struct SSID {
 
 // MARK: - Equatable
 
-extension LowEnergyAdvertisingData: Equatable {
+extension SSID: Equatable {
     
-    public static func == (lhs: LowEnergyAdvertisingData, rhs: LowEnergyAdvertisingData) -> Bool {
+    public static func == (lhs: SSID, rhs: SSID) -> Bool {
         
         return lhs.length == rhs.length &&
             lhs.bytes.0 == rhs.bytes.0 &&
@@ -158,13 +168,14 @@ extension LowEnergyAdvertisingData: Equatable {
             lhs.bytes.27 == rhs.bytes.27 &&
             lhs.bytes.28 == rhs.bytes.28 &&
             lhs.bytes.29 == rhs.bytes.29 &&
-            lhs.bytes.30 == rhs.bytes.30
+            lhs.bytes.30 == rhs.bytes.30 &&
+            lhs.bytes.31 == rhs.bytes.31
     }
 }
 
 // MARK: - Hashable
 
-extension LowEnergyAdvertisingData: Hashable {
+extension SSID: Hashable {
     
     public var hashValue: Int {
         
@@ -172,13 +183,40 @@ extension LowEnergyAdvertisingData: Hashable {
     }
 }
 
+// MARK: - CustomStringConvertible
+
+extension SSID: CustomStringConvertible {
+    
+    public var description: String {
+        
+        if let string = String.init(data: self.data, encoding: .utf8) {
+            
+            return string
+            
+        } else {
+            
+            return self.data.description
+        }
+    }
+}
+
+// MARK: - ExpressibleByStringLiteral
+
+extension SSID: ExpressibleByStringLiteral {
+    
+    public init(stringLiteral string: String) {
+        
+        self.init(string: string)!
+    }
+}
+
 // MARK: - ExpressibleByArrayLiteral
 
-extension LowEnergyAdvertisingData: ExpressibleByArrayLiteral {
+extension SSID: ExpressibleByArrayLiteral {
     
     public init(arrayLiteral elements: UInt8...) {
         
-        guard let value = LowEnergyAdvertisingData(data: Data(elements))
+        guard let value = SSID(data: Data(elements))
             else { fatalError("Invalid length \(elements.count)") }
         
         self = value
@@ -187,14 +225,14 @@ extension LowEnergyAdvertisingData: ExpressibleByArrayLiteral {
 
 // MARK: - Data Convertible
 
-public extension LowEnergyAdvertisingData {
+public extension SSID {
     
     public init?(data: Data) {
         
         let length = data.count
         
-        guard length >= 1,
-            length <= 31
+        guard length >= 0,
+            length <= 32
             else { return nil }
         
         self.init(length: UInt8(length),
@@ -228,7 +266,8 @@ public extension LowEnergyAdvertisingData {
                           length > 27 ? data[27] : 0,
                           length > 28 ? data[28] : 0,
                           length > 29 ? data[29] : 0,
-                          length > 30 ? data[30] : 0)
+                          length > 30 ? data[30] : 0,
+                          length > 31 ? data[31] : 0)
         )
     }
     
@@ -240,7 +279,7 @@ public extension LowEnergyAdvertisingData {
 
 // MARK: - Collection
 
-extension LowEnergyAdvertisingData: Collection {
+extension SSID: Collection {
     
     public var count: Int {
         
@@ -267,21 +306,21 @@ extension LowEnergyAdvertisingData: Collection {
 
 #if swift(>=3.3)
 #elseif swift(>=3.0)
-public extension LowEnergyAdvertisingData {
+public extension SSID {
 
 public typealias Slice = Swift.RandomAccessSlice
 }
 #endif
 
 #if swift(>=3.1)
-extension LowEnergyAdvertisingData: RandomAccessCollection {
+extension SSID: RandomAccessCollection {
     
-    public subscript(bounds: Range<Int>) -> Slice<LowEnergyAdvertisingData> {
+    public subscript(bounds: Range<Int>) -> Slice<SSID> {
         
-        return Slice<LowEnergyAdvertisingData>(base: self, bounds: bounds)
+        return Slice<SSID>(base: self, bounds: bounds)
     }
     
-    public func makeIterator() -> IndexingIterator<LowEnergyAdvertisingData> {
+    public func makeIterator() -> IndexingIterator<SSID> {
         
         return IndexingIterator(_elements: self)
     }
