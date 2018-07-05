@@ -37,3 +37,13 @@ extension WLANInterface: Hashable {
         return name.hashValue
     }
 }
+
+// MARK: - CustomStringConvertible
+
+extension WLANInterface: CustomStringConvertible {
+    
+    public var description: String {
+        
+        return name
+    }
+}

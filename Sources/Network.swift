@@ -13,8 +13,12 @@ import Foundation
  */
 public struct WLANNetwork {
     
+    /// The service set identifier (SSID) for the network, returned as data.
+    ///
+    /// The SSID is defined as 1-32 octets.
     public let ssid: SSID
     
+    /// The basic service set identifier (BSSID) for the network. 
     public let bssid: BSSID
     
     public init(ssid: SSID,

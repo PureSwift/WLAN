@@ -125,7 +125,7 @@ extension BSSID: RawRepresentable {
         
         let bytes = self.bigEndian.bytes
         
-        return String(format: "%x:%x:%x:%x:%x:%x", bytes.0, bytes.1, bytes.2, bytes.3, bytes.4, bytes.5)
+        return String(format: "%x:%x:%x:%x:%x:%x", bytes.0, bytes.1, bytes.2, bytes.3, bytes.4, bytes.5).uppercased()
     }
 }
 

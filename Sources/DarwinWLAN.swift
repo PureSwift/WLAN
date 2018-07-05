@@ -66,9 +66,13 @@ public final class DarwinWLAN: NSObject, WLANManager {
      - Parameter ssid: The SSID for which to scan.
      - Parameter interface: The network interface.
      */
-    public func scan(with ssid: Data? = nil, for interface: WLANInterface) throws -> [WLANNetwork] {
+    public func scan(with ssid: SSID? = nil, for interface: WLANInterface) throws -> [WLANNetwork] {
         
-        return try client.interface(for: interface).scanForNetworks(withSSID: ssid).map { WLANNetwork($0) }
+        let wlanInterface = try client.interface(for: interface)
+            
+        try wlanInterface.scanForNetworks(withSSID: ssid?.data)
+        
+        return wlanInterface.cachedScanResults()?.map { WLANNetwork($0) } ?? []
     }
     
     /**
@@ -129,7 +133,10 @@ internal extension WLANInterface {
     
     init(_ coreWLAN: CWInterface) {
         
-        self.init(name: coreWLAN.interfaceName!)
+        guard let interfaceName = coreWLAN.interfaceName
+            else { fatalError("Invalid values") }
+        
+        self.init(name: interfaceName)
     }
 }
 
@@ -137,6 +144,12 @@ internal extension WLANNetwork {
     
     init(_ coreWLAN: CWNetwork) {
         
-        fatalError()
+        guard let ssidData = coreWLAN.ssidData,
+            let ssid = SSID(data: ssidData),
+            let bssidString = coreWLAN.bssid,
+            let bssid = BSSID(rawValue: bssidString)
+            else { fatalError("Invalid values") }
+        
+        self.init(ssid: ssid, bssid: bssid)
     }
 }

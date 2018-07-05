@@ -28,7 +28,7 @@ public protocol WLANManager {
      - Parameter ssid: The SSID for which to scan.
      - Paramter interface: The network interface.
      */
-    func scan(with ssid: Data?, for interface: WLANInterface) throws -> [WLANNetwork]
+    func scan(with ssid: SSID?, for interface: WLANInterface) throws -> [WLANNetwork]
     
     /**
      Sets the interface power state.

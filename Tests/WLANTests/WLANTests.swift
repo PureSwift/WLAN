@@ -13,11 +13,28 @@ import XCTest
 final class WLANTests: XCTestCase {
     
     static var allTests = [
-        ("testExample", testExample),
+        ("testDarwinWLAN", testDarwinWLAN),
         ]
     
-    func testBSSID() {
+    func testDarwinWLAN() {
         
+        do {
+            
+            let wlanManager = DarwinWLAN()
+            
+            guard let interface = wlanManager.interface
+                else { XCTFail(); return }
+            
+            print("Interface: \(interface)")
+            
+            let networks = try wlanManager.scan(for: interface)
+            
+            XCTAssert(networks.isEmpty == false)
+            
+            print("Networks:")
+            networks.forEach { print("\($0.ssid) (\($0.bssid))") }
+        }
         
+        catch { XCTFail("\(error)"); return }
     }
 }
