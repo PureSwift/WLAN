@@ -60,16 +60,6 @@ public final class LinuxWLANManager: WLANManager {
     }
     
     /**
-     Scans for networks.
-     
-     If ssid parameter is present, a directed scan will be performed by the interface, otherwise a broadcast scan will be performed. This method will block for the duration of the scan.
-     
-     - Parameter ssid: The SSID for which to scan.
-     - Parameter interface: The network interface.
-     */
-    public func scan(with ssid: SSID? = nil, for interface: WLANInterface) throws -> [WLANNetwork] { return [] }
-    
-    /**
      Sets the interface power state.
      
      - Parameter power: A Boolean value corresponding to the power state. NO indicates the "OFF" state.
@@ -97,57 +87,35 @@ public extension LinuxWLANManager {
         
         for interface in networkInterfaces {
             
-            do { let _ = try wirelessExtensionName(for: interface.name) }
+            let wlanInterface = WLANInterface(name: interface.name)
+            
+            do { let _ = try wirelessExtensionName(for: wlanInterface) }
             catch { continue }
             
-            wlanInterfaces.append(WLANInterface(name: interface.name))
+            wlanInterfaces.append(wlanInterface)
         }
         
         return wlanInterfaces
     }
+}
+
+internal extension LinuxWLANManager {
     
-    internal func wirelessExtensionName(for interface: String) throws -> String {
+    enum Mode {
         
-        typealias Name = (Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8)
-        
-        var request = iwreq()
-        request.setInterfaceName(interface)
-        
-        guard IOControl(internalSocket, SIOCGIWNAME, &request) != -1
-            else { throw POSIXError.fromErrno! }
-        
-        var nameBuffer = UnsafeMutablePointer<Name>.allocate(capacity: 1)
-        
-        nameBuffer.pointee = request.u.name
-        
-        defer { nameBuffer.deallocate(capacity: 1) }
-        
-        return nameBuffer.withMemoryRebound(to: UInt8.self, capacity: MemoryLayout<Name>.size, { String(cString: $0) })
-    }
-    
-    internal func wirelessExtensionVersion(for interface: String) throws -> UInt8 {
-        
-        var result = [iw_range](repeating: iw_range(), count: 2)
-        try result.withUnsafeMutableBytes {
-            
-            var request = iwreq()
-            request.setInterfaceName(interface)
-            
-            request.u.data.pointer = UnsafeMutableRawPointer($0.baseAddress!)
-            request.u.data.length = __u16(MemoryLayout<iw_range>.size * 2)
-            request.u.data.flags = 0
-            
-            guard IOControl(internalSocket, SIOCGIWNAME, &request) != -1
-                else { throw POSIXError.fromErrno! }
-        }
-        
-        return result[0].we_version_compiled
+        case auto
+        case adhoc
+        case managed
+        case master
+        case repeater
+        case secondary
+        case monitor
     }
 }
 
 // MARK: - Linux Support
 
-private extension iwreq {
+internal extension iwreq {
     
     mutating func setInterfaceName(_ name: String) {
         

@@ -20,9 +20,8 @@ final class WLANTests: XCTestCase {
     
     static var allTests = [
         ("testSSID", testSSID),
-        ("testBSSID", testBSSID),
-        ("testWLAN", testWLAN)
-        ]
+        ("testBSSID", testBSSID)
+    ]
     
     func testSSID() {
         
@@ -41,44 +40,5 @@ final class WLANTests: XCTestCase {
         
         XCTAssertEqual(BSSID(rawValue: "D8:C7:71:41:C1:DB")?.description, "D8:C7:71:41:C1:DB")
         XCTAssertEqual(BSSID(rawValue: "18:A6:F7:99:81:90")?.description, "18:A6:F7:99:81:90")
-    }
-    
-    func testWLAN() {
-        
-        do {
-            
-            #if os(Linux)
-            let networkInterfaces = try NetworkInterface.interfaces()
-            print("Network Interfaces:")
-            networkInterfaces.forEach { print($0.name) }
-            #endif
-            
-            #if os(macOS)
-            let wlanManager = DarwinWLANManager()
-            #elseif os(Linux)
-            let wlanManager = try LinuxWLANManager()
-            #endif
-            
-            guard let interface = wlanManager.interface
-                else { XCTFail(); return }
-            
-            print("Interface: \(interface)")
-            
-            #if os(Linux)
-            let version = try wlanManager.wirelessExtensionVersion(for: interface.name)
-            print("Wireless Extension Version: \(version)")
-            let name = try wlanManager.wirelessExtensionName(for: interface.name)
-            print("Wireless Extension Name: \(name)")
-            #endif
-            
-            let networks = try wlanManager.scan(with: nil, for: interface)
-            
-            XCTAssert(networks.isEmpty == false)
-            
-            print("Networks:")
-            networks.forEach { print("\($0.ssid) (\($0.bssid))") }
-        }
-        
-        catch { XCTFail("\(error)"); return }
     }
 }

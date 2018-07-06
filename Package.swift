@@ -32,6 +32,12 @@ let package = Package(
             dependencies: [
                 .Target(name: "WLAN"),
                 nativeDependency
+            ]),
+        Target(
+            name: "wirelesstool",
+            dependencies: [
+                .Target(name: "WLAN"),
+                nativeDependency
             ])
     ],
     exclude: ["Xcode", "Carthage"]
