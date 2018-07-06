@@ -3,4 +3,5 @@ import XCTest
 
 XCTMain([
     testCase(WLANTests.allTests),
+    testCase(NetlinkTests.allTests)
 ])
