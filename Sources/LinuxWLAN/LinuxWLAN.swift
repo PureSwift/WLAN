@@ -67,14 +67,16 @@ public final class LinuxWLANManager: WLANManager {
         
         for interface in networkInterfaces {
             
-            try interface.name.withCString {
-                
-                var request = iwreq()
-                request.ifr_name = $0
-                
-                guard IOControl(internalSocket, SIOCGIWNAME, &request) != -1
-                    else { throw POSIXError.fromErrno! }
+            var request = iwreq()
+            
+            interface.name.withCString {
+                request.ifr_ifrn.ifrn_name = unsafeBitCast($0, to: UnsafeMutablePointer<(Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8)>.self).pointee
             }
+            
+            guard IOControl(internalSocket, SIOCGIWNAME, &request) != -1
+                else { continue }
+            
+            wlanInterfaces.append(WLANInterface(name: interface.name))
         }
         
         return wlanInterfaces

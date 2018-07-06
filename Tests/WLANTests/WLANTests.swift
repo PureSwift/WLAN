@@ -49,7 +49,8 @@ final class WLANTests: XCTestCase {
             
             #if os(Linux)
             let networkInterfaces = try NetworkInterface.interfaces()
-            print(networkInterfaces)
+            print("Network Interfaces:")
+            networkInterfaces.forEach { print($0.name) }
             #endif
             
             #if os(macOS)
