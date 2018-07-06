@@ -8,6 +8,11 @@
 
 import Foundation
 
+/**
+ WLAN Manager
+ 
+ A wrapper around the entire Wi-Fi subsystem that you use to access interfaces.
+ */
 public protocol WLANManager {
     
     /// Returns the default Wi-Fi interface.

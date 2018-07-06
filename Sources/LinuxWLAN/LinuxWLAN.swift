@@ -8,11 +8,18 @@
 
 import Foundation
 import WLAN
+import CSwiftLinuxWLAN
 
+/**
+ Linux WLAN Manager
+ 
+ A wrapper around the entire Wi-Fi subsystem that you use to access interfaces.
+ */
 public final class LinuxWLANManager: WLANManager {
     
     // MARK: - Properties
     
+    /// Socket handle to kernel network interfaces subsystem.
     internal let handle: CInt
     
     // MARK: - Initialization
@@ -25,7 +32,7 @@ public final class LinuxWLANManager: WLANManager {
     // MARK: - Methods
     
     /// Returns the default Wi-Fi interface.
-    public var interface: WLANInterface? { fatalError() }
+    public var interface: WLANInterface? { return interfaces.first }
     
     /**
      Returns all available Wi-Fi interfaces.
@@ -34,7 +41,7 @@ public final class LinuxWLANManager: WLANManager {
      */
     public var interfaces: [WLANInterface] {
         
-        fatalError()
+        return []
     }
     
     /**

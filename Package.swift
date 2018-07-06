@@ -1,15 +1,38 @@
 import PackageDescription
 
+#if os(macOS)
+let nativeDependency: Target.Dependency = .Target(name: "DarwinWLAN")
+#elseif os(Linux)
+let nativeDependency: Target.Dependency = .Target(name: "LinuxWLAN")
+#endif
+
 let package = Package(
     name: "WLAN",
     targets: [
         Target(
-            name: "WLAN"),
+            name: "WLAN",
+            dependencies: [
+                
+            ]),
         Target(
             name: "DarwinWLAN",
-            dependencies: ["WLAN"]),
+            dependencies: [
+                .Target(name: "WLAN")
+            ]),
         Target(
             name: "LinuxWLAN",
-            dependencies: ["WLAN"])
-    ]
+            dependencies: [
+                .Target(name: "WLAN"),
+                .Target(name: "CSwiftLinuxWLAN")
+            ]),
+        Target(
+            name: "CSwiftLinuxWLAN"),
+        Target(
+            name: "WLANTests",
+            dependencies: [
+                .Target(name: "WLAN"),
+                nativeDependency
+            ])
+    ],
+    exclude: ["Xcode", "Carthage"]
 )

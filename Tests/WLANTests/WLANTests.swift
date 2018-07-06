@@ -20,6 +20,8 @@ final class WLANTests: XCTestCase {
     
     static var allTests = [
         ("testSSID", testSSID),
+        ("testBSSID", testBSSID),
+        ("testWLAN", testWLAN)
         ]
     
     func testSSID() {
