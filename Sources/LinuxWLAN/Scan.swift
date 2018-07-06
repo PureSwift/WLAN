@@ -131,6 +131,7 @@ public extension LinuxWLANManager {
         
         print(Array(scanData))
         
+        //prepare_nl_message(channel->nl80211_id, NLM_F_REQUEST | NLM_F_DUMP | NLM_F_ACK, NL80211_CMD_GET_SCAN, channel)
         
         // parse data
         

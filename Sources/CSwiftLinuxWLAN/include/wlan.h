@@ -11,13 +11,20 @@
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <ifaddrs.h>
+#include <net/if.h>
+#include <string.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h> //fntnl (set descriptor options)
 
-#include "linux_wireless.h"
+#include "wireless.h"
 
 #if linux
 #include <linux/nl80211.h>
+#include <linux/genetlink.h> //generic netlink
 #else
 #include "nl80211.h"
+#include "genetlink.h"
 #endif
 
 /**
