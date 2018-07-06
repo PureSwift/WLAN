@@ -12,6 +12,14 @@
 #include <sys/types.h>
 #include <ifaddrs.h>
 
+#include "linux_wireless.h"
+
+#if linux
+#include <linux/nl80211.h>
+#else
+#include "nl80211.h"
+#endif
+
 /**
  @brief Manipulates the underlying device parameters of special files.
  @discussion @c int ioctl(int d, int request, ...);

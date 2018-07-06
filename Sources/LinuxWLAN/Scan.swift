@@ -72,12 +72,11 @@ public extension LinuxWLANManager {
                 
                 let error = POSIXError.fromErrno!
                 
-                print(error)
-                
                 switch error.code {
                 case .E2BIG: // Data is ready, but not enough space,
                     return true
-                case .EAGAIN, .EBUSY: // Data is not ready
+                case .EAGAIN,
+                     .EBUSY: // Data is not ready
                     return false
                 default:
                     throw error
@@ -125,11 +124,15 @@ public extension LinuxWLANManager {
             }
         }
         
-        let scanData = Data(bytes: UnsafeRawPointer(request.u.data.pointer), count: Int(request.u.data.length))
+        let scanData = Data(bytes: UnsafeRawPointer(request.u.data.pointer),
+                            count: Int(request.u.data.length))
         
         let version = try wirelessExtensionVersion(for: interface)
         
         print(Array(scanData))
+        
+        
+        // parse data
         
         return networks
     }
