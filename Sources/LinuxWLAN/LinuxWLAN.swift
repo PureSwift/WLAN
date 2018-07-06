@@ -56,24 +56,28 @@ public final class LinuxWLANManager: WLANManager {
      */
     public var interfaces: [WLANInterface] {
         
-        
-        
-        return []
+        return try! getInterfaces()
     }
     
     private func getInterfaces() throws -> [WLANInterface] {
         
         let networkInterfaces = try NetworkInterface.interfaces()
         
+        var wlanInterfaces = [WLANInterface]()
+        
         for interface in networkInterfaces {
             
-            var request = iwreq()
-            
-            guard IOControl(internalSocket, SIOCGIWNAME, &request) != -1
-                else { POSIXError.fromErrno! }
-            
-            
+            try interface.name.withCString {
+                
+                var request = iwreq()
+                request.ifr_name = $0
+                
+                guard IOControl(internalSocket, SIOCGIWNAME, &request) != -1
+                    else { throw POSIXError.fromErrno! }
+            }
         }
+        
+        return wlanInterfaces
     }
     
     /**
@@ -103,11 +107,6 @@ public final class LinuxWLANManager: WLANManager {
 }
 
 // MARK: - Linux Support
-
-/* SIOCGIWNAME is used to verify the presence of Wireless Extensions.
- * Common values : "IEEE 802.11-DS", "IEEE 802.11-FH", "IEEE 802.11b"...
- */
-internal let SIOCGIWNAME: CInt = 0x8B01 /* get name == wireless protocol */
 
 #if os(Linux)
     

@@ -19,7 +19,7 @@
  @param request Device-dependent request code.
  @param pointer Untyped pointer to memory.
  */
-static inline int swift_wlan_ioctl(int fd, unsigned long int request, void *pointer)
+static inline int swift_wlan_ioctl(int fd, int request, void *pointer)
 __attribute__((swift_name("IOControl(_:_:_:)")))
 {
     return ioctl(fd, request, pointer);

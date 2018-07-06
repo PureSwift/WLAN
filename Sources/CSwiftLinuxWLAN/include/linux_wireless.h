@@ -69,8 +69,18 @@
 
 /***************************** INCLUDES *****************************/
 
+#ifdef linux
 #include <linux/types.h>		/* for __u* and __s* typedefs */
 #include <linux/socket.h>		/* for "struct sockaddr" et al	*/
+#else
+
+typedef uint16_t __u16;
+typedef uint32_t __u32;
+typedef uint64_t __u64;
+typedef <#existing#> <#new#>;
+
+#endif
+
 #include <net/if.h>		    	/* for IFNAMSIZ and co... */
 
 /***************************** VERSION *****************************/
