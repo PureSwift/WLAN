@@ -1,4 +1,5 @@
 module CSwiftLinuxWLAN [system] {
     header "wlan.h"
+    header "wireless.h"
     export *
 }
