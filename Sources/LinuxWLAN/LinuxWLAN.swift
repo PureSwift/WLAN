@@ -56,30 +56,7 @@ public final class LinuxWLANManager: WLANManager {
      */
     public var interfaces: [WLANInterface] {
         
-        return try! getInterfaces()
-    }
-    
-    private func getInterfaces() throws -> [WLANInterface] {
-        
-        let networkInterfaces = try NetworkInterface.interfaces()
-        
-        var wlanInterfaces = [WLANInterface]()
-        
-        for interface in networkInterfaces {
-            
-            var request = iwreq()
-            
-            interface.name.withCString {
-                request.ifr_ifrn.ifrn_name = unsafeBitCast($0, to: UnsafeMutablePointer<(Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8)>.self).pointee
-            }
-            
-            guard IOControl(internalSocket, SIOCGIWNAME, &request) != -1
-                else { continue }
-            
-            wlanInterfaces.append(WLANInterface(name: interface.name))
-        }
-        
-        return wlanInterfaces
+        return try! wirelessInterfaces()
     }
     
     /**
@@ -90,7 +67,7 @@ public final class LinuxWLANManager: WLANManager {
      - Parameter ssid: The SSID for which to scan.
      - Parameter interface: The network interface.
      */
-    public func scan(with ssid: SSID? = nil, for interface: WLANInterface) throws -> [WLANNetwork] { fatalError() }
+    public func scan(with ssid: SSID? = nil, for interface: WLANInterface) throws -> [WLANNetwork] { return [] }
     
     /**
      Sets the interface power state.
@@ -98,17 +75,79 @@ public final class LinuxWLANManager: WLANManager {
      - Parameter power: A Boolean value corresponding to the power state. NO indicates the "OFF" state.
      - Parameter interface: The network interface.
      */
-    public func setPower(_ power: Bool, for interface: WLANInterface) throws { fatalError() }
+    public func setPower(_ power: Bool, for interface: WLANInterface) throws {  }
     
     /**
      Disassociates from the current network.
      
      This method has no effect if the interface is not associated to a network.
      */
-    public func disassociate(interface: WLANInterface) throws { fatalError() }
+    public func disassociate(interface: WLANInterface) throws { }
+}
+
+// MARK: - Linux Extensions
+
+public extension LinuxWLANManager {
+    
+    internal func wirelessInterfaces() throws -> [WLANInterface] {
+        
+        let networkInterfaces = try NetworkInterface.interfaces()
+        
+        var wlanInterfaces = [WLANInterface]()
+        
+        for interface in networkInterfaces {
+            
+            do { let _ = try wirelessExtensionName(for: interface.name) }
+            catch { continue }
+            
+            wlanInterfaces.append(WLANInterface(name: interface.name))
+        }
+        
+        return wlanInterfaces
+    }
+    
+    internal func wirelessExtensionName(for interface: String) throws -> String {
+        
+        var request = iwreq()
+        request.setInterfaceName(interface)
+        
+        guard IOControl(internalSocket, SIOCGIWNAME, &request) != -1
+            else { throw POSIXError.fromErrno! }
+        
+        return "" // FIXME:
+    }
+    
+    internal func wirelessExtensionVersion(for interface: String) throws -> UInt8 {
+        
+        var result = [iw_range](repeating: iw_range(), count: 2)
+        try result.withUnsafeMutableBytes {
+            
+            var request = iwreq()
+            request.setInterfaceName(interface)
+            
+            request.u.data.pointer = UnsafeMutableRawPointer($0.baseAddress!)
+            request.u.data.length = __u16(MemoryLayout<iw_range>.size * 2)
+            request.u.data.flags = 0
+            
+            guard IOControl(internalSocket, SIOCGIWNAME, &request) != -1
+                else { throw POSIXError.fromErrno! }
+        }
+        
+        return result[0].we_version_compiled
+    }
 }
 
 // MARK: - Linux Support
+
+private extension iwreq {
+    
+    mutating func setInterfaceName(_ name: String) {
+        
+        name.withCString {
+            self.ifr_ifrn.ifrn_name = unsafeBitCast($0, to: UnsafeMutablePointer<(Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8)>.self).pointee
+        }
+    }
+}
 
 #if os(Linux)
     
