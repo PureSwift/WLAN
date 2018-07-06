@@ -67,6 +67,8 @@ final class WLANTests: XCTestCase {
             #if os(Linux)
             let version = try wlanManager.wirelessExtensionVersion(for: interface.name)
             print("Wireless Extension Version: \(version)")
+            let name = try wlanManager.wirelessExtensionName(for: interface.name)
+            print("Wireless Extension Name: \(name)")
             #endif
             
             let networks = try wlanManager.scan(with: nil, for: interface)

@@ -108,13 +108,21 @@ public extension LinuxWLANManager {
     
     internal func wirelessExtensionName(for interface: String) throws -> String {
         
+        typealias Name = (Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8)
+        
         var request = iwreq()
         request.setInterfaceName(interface)
         
         guard IOControl(internalSocket, SIOCGIWNAME, &request) != -1
             else { throw POSIXError.fromErrno! }
         
-        return "" // FIXME:
+        var nameBuffer = UnsafeMutablePointer<Name>.allocate(capacity: 1)
+        
+        nameBuffer.pointee = request.u.name
+        
+        defer { nameBuffer.deallocate(capacity: 1) }
+        
+        return nameBuffer.withMemoryRebound(to: UInt8.self, capacity: MemoryLayout<Name>.size, { String(cString: $0) })
     }
     
     internal func wirelessExtensionVersion(for interface: String) throws -> UInt8 {
@@ -159,6 +167,6 @@ internal typealias sa_family_t = Glibc.sa_family_t
     
 #elseif os(macOS)
     
-internal let AF_PACKET: CInt = 0
-    
+internal var AF_PACKET: CInt { fatalError("\(#function) is only availible on Linux") }
+
 #endif
