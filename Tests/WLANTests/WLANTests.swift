@@ -47,6 +47,11 @@ final class WLANTests: XCTestCase {
         
         do {
             
+            #if os(Linux)
+            let networkInterfaces = try NetworkInterface.interfaces()
+            print(networkInterfaces)
+            #endif
+            
             #if os(macOS)
             let wlanManager = DarwinWLANManager()
             #elseif os(Linux)

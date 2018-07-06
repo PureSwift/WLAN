@@ -6,6 +6,12 @@
 //  Copyright © 2018 PureSwift. All rights reserved.
 //
 
+#if os(Linux)
+    import Glibc
+#elseif os(macOS) || os(iOS)
+    import Darwin.C
+#endif
+
 import Foundation
 import WLAN
 import CSwiftLinuxWLAN
@@ -20,13 +26,22 @@ public final class LinuxWLANManager: WLANManager {
     // MARK: - Properties
     
     /// Socket handle to kernel network interfaces subsystem.
-    internal let handle: CInt
+    internal let internalSocket: CInt
     
     // MARK: - Initialization
     
     public init() throws {
         
-        self.handle = 0
+        let netSocket = socket(AF_INET, SOCK_STREAM, 0)
+        
+        guard netSocket >= 0 else { throw POSIXError.fromErrno! }
+        
+        self.internalSocket = netSocket
+    }
+    
+    deinit {
+        
+        close(internalSocket)
     }
     
     // MARK: - Methods
@@ -43,6 +58,8 @@ public final class LinuxWLANManager: WLANManager {
         
         return []
     }
+    
+    
     
     /**
      Scans for networks.
@@ -69,3 +86,19 @@ public final class LinuxWLANManager: WLANManager {
      */
     public func disassociate(interface: WLANInterface) throws { fatalError() }
 }
+
+// MARK: - Linux Support
+
+#if os(Linux)
+    
+internal let SOCK_RAW = CInt(Glibc.SOCK_RAW.rawValue)
+    
+internal let SOCK_STREAM = CInt(Glibc.SOCK_STREAM.rawValue)
+
+internal typealias sa_family_t = Glibc.sa_family_t
+    
+#elseif os(macOS)
+    
+internal let AF_PACKET: CInt = 0
+    
+#endif

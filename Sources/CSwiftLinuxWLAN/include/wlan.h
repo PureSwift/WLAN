@@ -9,6 +9,8 @@
  */
 
 #include <sys/ioctl.h>
+#include <sys/types.h>
+#include <ifaddrs.h>
 
 /**
  @brief Manipulates the underlying device parameters of special files.
