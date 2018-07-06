@@ -20,7 +20,7 @@ public struct NetlinkMessageFlag: RawRepresentable {
     
     public let rawValue: UInt16
     
-    public init(rawValue: UInt16) {
+    public init(rawValue: UInt16 = 0) {
         
         self.rawValue = rawValue
     }
@@ -73,7 +73,16 @@ public extension NetlinkMessageFlag {
     public enum New {
         
         /// Replace existing matching config object with this request.
-        public static let replace =
+        public static let replace = NetlinkMessageFlag(rawValue: UInt16(NLM_F_REPLACE))
+        
+        /// Don't replace the config object if it already exists.
+        public static let exclude = NetlinkMessageFlag(rawValue: UInt16(NLM_F_EXCL))
+        
+        /// Create config object if it doesn't already exist.
+        public static let create = NetlinkMessageFlag(rawValue: UInt16(NLM_F_CREATE))
+        
+        /// Add to the end of the object list.
+        public static let append = NetlinkMessageFlag(rawValue: UInt16(NLM_F_APPEND))
     }
 }
 

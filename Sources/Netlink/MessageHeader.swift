@@ -135,4 +135,39 @@ public struct NetlinkMessageHeader {
      */
     
     public var type: NetlinkMessageType
+    
+    /**
+     Flags: 16 bits
+     */
+    public var flags: NetlinkMessageFlag
+    
+    /**
+     Sequence Number: 32 bits
+     
+     The sequence number of the message.
+     */
+    public var sequence: UInt32
+    
+    /**
+     Process ID (PID): 32 bits
+     
+     The PID of the process sending the message. The PID is used by the
+     kernel to multiplex to the correct sockets. A PID of zero is used
+     when sending messages to user space from the kernel.
+     */
+    public var proccessID: UInt32
+}
+
+// MARK: - Linux Native Type
+
+public extension nlmsghdr {
+    
+    init(_ header: NetlinkMessageHeader) {
+        
+        self.init(nlmsg_len: __u32(header.length),
+                  nlmsg_type: __u16(header.type.rawValue),
+                  nlmsg_flags: __u16(header.flags.rawValue),
+                  nlmsg_seq: __u32(header.sequence),
+                  nlmsg_pid: __u32(header.proccessID))
+    }
 }
