@@ -21,53 +21,104 @@ import CLinuxWLAN
 
 public final class Netlink80211 {
     
-    internal func scanResults(for interface: WLANInterface) throws -> [WLANNetwork] {
+    /**
+     Scans for networks.
+     
+     If ssid parameter is present, a directed scan will be performed by the interface, otherwise a broadcast scan will be performed. This method will block for the duration of the scan.
+     
+     - Parameter ssid: The SSID for which to scan.
+     - Parameter interface: The network interface.
+     */
+    public func scan(with ssid: SSID?, for interface: WLANInterface) throws -> [WLANNetwork] {
         
-        var networks = [WLANNetwork]()
+        let scanOperation = try ScanOperation(interface: interface)
         
-        // Use this wireless interface for scanning.
-        let interfaceIndex = try NetworkInterface.index(for: NetworkInterface(name: interface.name))
+        try scanOperation.triggerScan(with: ssid)
         
-        // Open socket to kernel.
-        let netlinkSocket = NetlinkSocket()
+        return try scanOperation.scanResults()
+    }
+}
+
+internal extension Netlink80211 {
+    
+    final class ScanOperation {
         
-        // Create file descriptor and bind socket.
-        try netlinkSocket.connect(using: .generic)
+        // WLAN interface
+        let interface: WLANInterface
         
-        let driverID = try netlinkSocket.genericView.resolve(name: .nl80211)  // Find the "nl80211" driver ID.
+        // WLAN interface index
+        let interfaceIndex: UInt
         
-        // Create message
-        let message = NetlinkMessage()
+        // Open socket to kernel
+        let socket: NetlinkSocket
         
-        // Setup which command to run.
-        message.genericView.put(port: 0,
-                                sequence: 0,
-                                family: driverID,
-                                headerLength: 0,
-                                flags: NetlinkMessageFlag.Get.dump,
-                                command: NetlinkGenericCommand.NL80211.getScanResults,
-                                version: 0)
+        // "nl80211" driver ID
+        let driverID: NetlinkGenericFamilyIdentifier
         
-        // Add message attribute, specify which interface to use.
-        try message.setValue(UInt32(interfaceIndex), for: NetlinkAttribute.NL80211.interfaceIndex)
-        
-        // Add the callback.
-        try netlinkSocket.modifyCallback(type: NL_CB_VALID, kind: NL_CB_CUSTOM) {
+        init(interface: WLANInterface) throws {
             
-            print("Recieved message")
+            // Use this wireless interface for scanning.
+            let interfaceIndex = try NetworkInterface.index(for: NetworkInterface(name: interface.name))
             
-            return NL_SKIP
+            // Open socket to kernel.
+            let netlinkSocket = NetlinkSocket()
+            
+            // Create file descriptor and bind socket.
+            try netlinkSocket.connect(using: .generic)
+            
+            // Find the "nl80211" driver ID.
+            let driverID = try netlinkSocket.genericView.resolve(name: .nl80211)  // Find the "nl80211" driver ID.
+            
+            self.interface = interface
+            self.interfaceIndex = interfaceIndex
+            self.socket = netlinkSocket
+            self.driverID = driverID
         }
         
-        // Send the message.
-        let sentBytes = try netlinkSocket.send(message: message)
+        /// Issue NL80211_CMD_TRIGGER_SCAN to the kernel and wait for it to finish.
+        func triggerScan(with ssid: SSID? = nil) throws {
+            
+            
+        }
         
-        print("Sent \(sentBytes) bytes to kernel")
-        
-        // Retrieve the kernel's answer
-        try netlinkSocket.recieve()
-        
-        return networks
+        /// Issue NL80211_CMD_GET_SCAN.
+        func scanResults() throws -> [WLANNetwork] {
+            
+            var networks = [WLANNetwork]()
+            
+            // Create message
+            let message = NetlinkMessage()
+            
+            // Setup which command to run.
+            message.genericView.put(port: 0,
+                                    sequence: 0,
+                                    family: driverID,
+                                    headerLength: 0,
+                                    flags: NetlinkMessageFlag.Get.dump,
+                                    command: NetlinkGenericCommand.NL80211.getScanResults,
+                                    version: 0)
+            
+            // Add message attribute, specify which interface to use.
+            try message.setValue(UInt32(interfaceIndex), for: NetlinkAttribute.NL80211.interfaceIndex)
+            
+            // Add the callback.
+            try socket.modifyCallback(type: NL_CB_VALID, kind: NL_CB_CUSTOM) {
+                
+                print("Recieved message")
+                
+                return NL_SKIP
+            }
+            
+            // Send the message.
+            let sentBytes = try socket.send(message: message)
+            
+            print("Sent \(sentBytes) bytes to kernel")
+            
+            // Retrieve the kernel's answer
+            try socket.recieve()
+            
+            return networks
+        }
     }
 }
 

@@ -28,11 +28,15 @@ public final class LinuxWLANManager: WLANManager {
     /// Socket handle to kernel network interfaces subsystem.
     internal let wirelessExtensions: LinuxWirelessExtensions
     
+    /// Netlink commands and operations.
+    internal let netlink: Netlink80211
+    
     // MARK: - Initialization
     
     public init() throws {
         
         self.wirelessExtensions = try LinuxWirelessExtensions()
+        self.netlink = Netlink80211()
     }
     
     // MARK: - Methods
@@ -60,7 +64,7 @@ public final class LinuxWLANManager: WLANManager {
      */
     public func scan(with ssid: SSID?, for interface: WLANInterface) throws -> [WLANNetwork] {
         
-        return []
+        return try netlink.scan(with: ssid, for: interface)
     }
     
     /**
@@ -69,12 +73,18 @@ public final class LinuxWLANManager: WLANManager {
      - Parameter power: A Boolean value corresponding to the power state. NO indicates the "OFF" state.
      - Parameter interface: The network interface.
      */
-    public func setPower(_ power: Bool, for interface: WLANInterface) throws {  }
+    public func setPower(_ power: Bool, for interface: WLANInterface) throws {
+        
+        
+    }
     
     /**
      Disassociates from the current network.
      
      This method has no effect if the interface is not associated to a network.
      */
-    public func disassociate(interface: WLANInterface) throws { }
+    public func disassociate(interface: WLANInterface) throws {
+        
+        
+    }
 }
