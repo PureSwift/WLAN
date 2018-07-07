@@ -21,6 +21,8 @@ public final class NetlinkSocket {
     
     internal let rawPointer: OpaquePointer
     
+    internal private(set) var callback: Callback?
+    
     public init() {
         
         self.rawPointer = nl_socket_alloc()
@@ -54,6 +56,32 @@ public final class NetlinkSocket {
         }
     }
     
+    /// Finalize and transmit Netlink message.
+    @discardableResult
+    public func send(message: NetlinkMessage) throws -> Int {
+        
+        let count = nl_send_auto(rawPointer, message.rawPointer)
+        
+        try count.nlThrow() // validate
+        
+        return Int(count)
+    }
+    
+    /// Recieve answer.
+    public func recieve() throws {
+        
+        try nl_recvmsgs_default(rawPointer).nlThrow()
+    }
+    
+    public func modifyCallback(type: nl_cb_type, kind: nl_cb_kind, callback: @escaping Callback) throws {
+        
+        let objectPointer = Unmanaged.passUnretained(self).toOpaque()
+        
+        try nl_socket_modify_cb(rawPointer, type, kind, NetlinkSocketRecievedMessageCallback, objectPointer).nlThrow()
+        
+        self.callback = callback
+    }
+    
     // MARK: - Accessors
     
     /// Return the file descriptor of the backing socket.
@@ -66,6 +94,26 @@ public final class NetlinkSocket {
     }
 }
 
+// MARK: - Handle
+
 extension NetlinkSocket: Handle { }
+
+// MARK: - Callback
+
+public extension NetlinkSocket {
+    
+    public typealias Callback = () -> (nl_cb_action)
+}
+
+@_silgen_name("swift_netlink_recvmsg_msg_cb")
+fileprivate func NetlinkSocketRecievedMessageCallback(socket: OpaquePointer?, object: UnsafeMutableRawPointer?) -> Int32 {
+    
+    guard let object = object else { return 0 }
+    
+    let netlinkSocket = Unmanaged<NetlinkSocket>.fromOpaque(object).takeUnretainedValue()
+    
+    return Int32(netlinkSocket.callback?().rawValue ?? 0)
+}
+
 
 #endif

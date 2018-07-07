@@ -75,7 +75,7 @@ internal extension CInt {
     @inline(__always)
     func nlThrow() throws {
         
-        guard self == 0 else { throw NetlinkError(rawValue: self) }
+        guard self >= 0 else { throw NetlinkError(rawValue: -self) }
     }
 }
 
