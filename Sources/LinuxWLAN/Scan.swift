@@ -77,6 +77,8 @@ public extension LinuxWLANManager {
                 
                 let error = POSIXError.fromErrno!
                 
+                print("Is scan finish \(error.code)")
+                
                 switch error.code {
                 case .E2BIG: // Data is ready, but not enough space,
                     return true
@@ -117,7 +119,7 @@ public extension LinuxWLANManager {
                                 version: 0)
         
         // Add message attribute, specify which interface to use.
-        message
+        try message.setValue(UInt32(interfaceIndex), for: NetlinkAttribute.NL80211.interfaceIndex)
         
         var networks = [WLANNetwork]()
         

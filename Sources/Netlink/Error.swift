@@ -79,4 +79,11 @@ internal extension CInt {
     }
 }
 
+// MARK: - Definitions
+
+public extension NetlinkError {
+    
+    public static let failure = NetlinkError(rawValue: NLE_FAILURE)
+}
+
 #endif

@@ -143,6 +143,17 @@ public final class NetlinkMessage {
         
         return try body(headerPointer)
     }
+    
+    // MARK: - Attributes
+    
+    /// Add 32 bit integer attribute to netlink message.
+    ///
+    /// - Parameter value: Numeric value to store as payload.
+    /// - Parameter attribute: Attribute type.
+    public func setValue(_ value: UInt32, for attribute: NetlinkAttribute) throws {
+        
+        try nla_put_u32(rawPointer, attribute.rawValue, value).nlThrow()
+    }
 }
 
 // MARK: - ManagedHandle

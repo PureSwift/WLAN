@@ -34,6 +34,7 @@ public final class NetlinkGenericMessage {
     // MARK: - Methods
     
     /// Add Generic Netlink headers to Netlink message.
+    @discardableResult
     public func put(port: UInt32,
                     sequence: UInt32,
                     family: NetlinkGenericFamilyIdentifier,
