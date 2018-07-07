@@ -23,7 +23,8 @@ let package = Package(
             name: "Netlink",
             dependencies: [
                 .Target(name: "WLAN"),
-                .Target(name: "CSwiftLinuxWLAN")
+                .Target(name: "CSwiftLinuxWLAN"),
+                .Target(name: "CNetlink")
             ]),
         Target(
             name: "LinuxWLAN",
@@ -34,6 +35,8 @@ let package = Package(
             ]),
         Target(
             name: "CSwiftLinuxWLAN"),
+        Target(
+            name: "CNetlink"),
         Target(
             name: "WLANTests",
             dependencies: [
