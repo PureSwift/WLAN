@@ -1,3 +1,3 @@
 // To avoid SPM warnings:
 //
-// warning: module 'CSwiftLinuxWLAN' does not contain any sources.
+// warning: module 'CNetlink' does not contain any sources.
