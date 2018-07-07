@@ -26,6 +26,16 @@ public struct NetlinkMessageFlag: RawRepresentable {
     }
 }
 
+// MARK: - ExpressibleByIntegerLiteral
+
+extension NetlinkMessageFlag: ExpressibleByIntegerLiteral {
+    
+    public init(integerLiteral value: UInt16) {
+        
+        self.init(rawValue: value)
+    }
+}
+
 // MARK: - Constants
 
 // The standard flag bits used in Netlink

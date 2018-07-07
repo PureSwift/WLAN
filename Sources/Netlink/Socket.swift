@@ -45,10 +45,6 @@ public final class NetlinkSocket {
     }
     
     /// Transmit raw data over Netlink socket.
-    ///
-    /// - Note: Think twice before using this function. It provides a low level access to
-    /// the Netlink socket. Among other limitations, it does not add credentials even if
-    /// enabled or respect the destination address specified in the `msg` object.
     public func send(_ data: Data) throws {
         
         let size = data.count
