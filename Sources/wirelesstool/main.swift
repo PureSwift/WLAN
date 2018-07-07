@@ -38,9 +38,10 @@ func run(arguments: [String] = CommandLine.arguments) throws {
     print("Interface: \(interface)")
     
     #if os(Linux)
-    let version = try wlanManager.wirelessExtensionVersion(for: interface)
+    let wirelessExtensions = try LinuxWirelessExtensions()
+    let version = try wirelessExtensions.version(for: interface)
     print("Wireless Extension Version: \(version)")
-    let name = try wlanManager.wirelessExtensionName(for: interface)
+    let name = try wirelessExtensions.name(for: interface)
     print("Wireless Extension Name: \(name)")
     #endif
     
