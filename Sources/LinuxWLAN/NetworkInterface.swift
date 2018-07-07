@@ -44,7 +44,16 @@ public struct NetworkInterface {
         return interfaces
     }
     
-    public let name: String
+    /// Returns the index of the network interface corresponding to the name
+    public static func index(for interface: NetworkInterface) throws -> UInt {
+        
+        let index = if_nametoindex(interface.name)
+        
+        guard index != 0 else { throw POSIXError.fromErrno! }
+        
+        return UInt(index)
+    }
     
-    //public let address: sockaddr_ll
+    /// Interface name.
+    public let name: String
 }

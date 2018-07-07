@@ -93,16 +93,33 @@ public extension LinuxWLANManager {
         }
     }
     
+    #if os(Linux) || Xcode
     internal func scanResults(for interface: WLANInterface) throws -> [WLANNetwork] {
+        
+        let interfaceIndex = try NetworkInterface.index(for: NetworkInterface(name: interface.name))
+        
+        // Open socket to kernel.
+        let netlinkSocket = NetlinkSocket()
+        
+        // Create file descriptor and bind socket.
+        try netlinkSocket.connect(using: .generic)
+        
+        
         
         var networks = [WLANNetwork]()
         
-        let netlinkSocket = NetlinkSocket()
         
         
         
         return networks
     }
+    #else
+    internal func scanResults(for interface: WLANInterface) throws -> [WLANNetwork] {
+        
+        assertionFailure("Linux only API")
+        return []
+    }
+    #endif
     
     /*
     internal func scanResults(for interface: WLANInterface) throws -> [WLANNetwork] {

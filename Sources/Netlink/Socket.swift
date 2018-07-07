@@ -19,16 +19,16 @@ import CNetlink
 
 public final class NetlinkSocket {
     
-    internal let internalSocket: OpaquePointer
+    internal let rawPointer: OpaquePointer
     
     public init() {
         
-        self.internalSocket = nl_socket_alloc()
+        self.rawPointer = nl_socket_alloc()
     }
     
     deinit {
         
-        nl_socket_free(internalSocket)
+        nl_socket_free(rawPointer)
     }
     
     // MARK: - Methods
@@ -41,7 +41,7 @@ public final class NetlinkSocket {
     /// Fails if the socket is already connected.
     public func connect(using socketProtocol: NetlinkSocketProtocol) throws {
         
-        try nl_connect(internalSocket, socketProtocol.rawValue).nlThrow()
+        try nl_connect(rawPointer, socketProtocol.rawValue).nlThrow()
     }
     
     /// Transmit raw data over Netlink socket.
@@ -50,9 +50,22 @@ public final class NetlinkSocket {
         let size = data.count
         
         try data.withUnsafeBytes {
-            try nl_sendto(internalSocket, UnsafeMutableRawPointer(mutating: $0), size).nlThrow()
+            try nl_sendto(rawPointer, UnsafeMutableRawPointer(mutating: $0), size).nlThrow()
         }
     }
+    
+    // MARK: - Accessors
+    
+    /// Return the file descriptor of the backing socket.
+    public var fileDescriptor: Int32? {
+        
+        // File descriptor or -1 if not available.
+        let fileDescriptor = nl_socket_get_fd(rawPointer)
+        
+        return fileDescriptor != -1 ? fileDescriptor : nil
+    }
 }
+
+extension NetlinkSocket: Handle { }
 
 #endif
