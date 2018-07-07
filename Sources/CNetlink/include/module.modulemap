@@ -1,5 +1,6 @@
 module CNetlink [system] {
     header "shim.h"
     link "nl-3"
+    link "nl-genl-3"
     export *
 }
