@@ -15,6 +15,11 @@ import Foundation
 import WLAN
 import CSwiftLinuxWLAN
 
+#if os(Linux) || Xcode
+import CNetlink
+import Netlink
+#endif
+
 public extension LinuxWLANManager {
     
     /**
@@ -92,6 +97,18 @@ public extension LinuxWLANManager {
         
         var networks = [WLANNetwork]()
         
+        let netlinkSocket = NetlinkSocket()
+        
+        
+        
+        return networks
+    }
+    
+    /*
+    internal func scanResults(for interface: WLANInterface) throws -> [WLANNetwork] {
+        
+        var networks = [WLANNetwork]()
+        
         var bufferLength = Int(IW_SCAN_MAX_DATA)
         var scanDataBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferLength)
         defer { scanDataBuffer.deallocate(capacity: bufferLength) }
@@ -127,14 +144,14 @@ public extension LinuxWLANManager {
         let scanData = Data(bytes: UnsafeRawPointer(request.u.data.pointer),
                             count: Int(request.u.data.length))
         
-        let version = try wirelessExtensionVersion(for: interface)
+        //let version = try wirelessExtensionVersion(for: interface)
         
-        print(Array(scanData))
+        //print(Array(scanData))
         
         //prepare_nl_message(channel->nl80211_id, NLM_F_REQUEST | NLM_F_DUMP | NLM_F_ACK, NL80211_CMD_GET_SCAN, channel)
         
         // parse data
         
         return networks
-    }
+    }*/
 }

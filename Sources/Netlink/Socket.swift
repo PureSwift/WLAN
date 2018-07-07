@@ -30,6 +30,33 @@ public final class NetlinkSocket {
         
         nl_socket_free(internalSocket)
     }
+    
+    // MARK: - Methods
+    
+    /// Create file descriptor and bind socket.
+    ///
+    /// Creates a new Netlink socket using socket() and binds the socket to the protocol
+    /// and local port specified in the sk socket object.
+    ///
+    /// Fails if the socket is already connected.
+    public func connect(using socketProtocol: NetlinkSocketProtocol) throws {
+        
+        try nl_connect(internalSocket, socketProtocol.rawValue).nlThrow()
+    }
+    
+    /// Transmit raw data over Netlink socket.
+    ///
+    /// - Note: Think twice before using this function. It provides a low level access to
+    /// the Netlink socket. Among other limitations, it does not add credentials even if
+    /// enabled or respect the destination address specified in the `msg` object.
+    public func send(_ data: Data) throws {
+        
+        let size = data.count
+        
+        try data.withUnsafeBytes {
+            try nl_sendto(internalSocket, UnsafeMutableRawPointer(mutating: $0), size).nlThrow()
+        }
+    }
 }
 
 #endif
