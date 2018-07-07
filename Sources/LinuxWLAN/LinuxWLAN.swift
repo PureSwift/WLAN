@@ -14,7 +14,7 @@
 
 import Foundation
 import WLAN
-import CSwiftLinuxWLAN
+import CLinuxWLAN
 
 /**
  Linux WLAN Manager

@@ -13,7 +13,7 @@
 #endif
 
 import Foundation
-import CSwiftLinuxWLAN
+import CLinuxWLAN
 
 /// UNIX Network Interface
 public struct NetworkInterface {

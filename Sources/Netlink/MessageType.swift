@@ -13,7 +13,7 @@
 #endif
 
 import Foundation
-import CSwiftLinuxWLAN
+import CLinuxWLAN
 
 /**
  Netlink Message Type

@@ -11,11 +11,11 @@ import Glibc
 import Darwin.C
 #endif
 
-#if os(Linux) || Xcode
+#if os(Linux) || XcodeLinux
 
 import Foundation
 import CNetlink
-import CSwiftLinuxWLAN
+import CLinuxWLAN
 
 /// Netlink generic message payload.
 public final class NetlinkGenericMessage {

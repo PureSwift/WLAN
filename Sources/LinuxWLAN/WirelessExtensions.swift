@@ -13,7 +13,7 @@ import Darwin.C
 
 import Foundation
 import WLAN
-import CSwiftLinuxWLAN
+import CLinuxWLAN
 
 /// Linux Wireless Extensions API
 public final class LinuxWirelessExtensions {

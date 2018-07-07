@@ -13,5 +13,5 @@
 #endif
 
 import Foundation
-import CSwiftLinuxWLAN
+import CLinuxWLAN
 

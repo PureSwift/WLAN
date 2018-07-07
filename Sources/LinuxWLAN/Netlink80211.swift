@@ -11,13 +11,13 @@ import Glibc
 import Darwin.C
 #endif
 
-#if os(Linux) || Xcode
+#if os(Linux) || XcodeLinux
 
 import Foundation
 import WLAN
 import Netlink
 import CNetlink
-import CSwiftLinuxWLAN
+import CLinuxWLAN
 
 public final class Netlink80211 {
     
