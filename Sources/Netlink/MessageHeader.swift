@@ -109,11 +109,13 @@ import CSwiftLinuxWLAN
  Netlink headers and an associated payload.  If the payload is too big
  to fit into a single message it, can be split over multiple Netlink
  messages, collectively called a multipart message.  For multipart
- messages, the first and all following headers have the NLM_F_MULTI
+ messages, the first and all following headers have the `.multi`.
  Netlink header flag set, except for the last header which has the
- Netlink header type NLMSG_DONE.
+ Netlink header type `.done`.
  */
 public struct NetlinkMessageHeader {
+    
+    public static let length = MemoryLayout<nlmsghdr>.size
     
     /**
      Length: 32 bits

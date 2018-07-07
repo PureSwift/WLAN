@@ -15,4 +15,3 @@
 import Foundation
 import CSwiftLinuxWLAN
 
-
