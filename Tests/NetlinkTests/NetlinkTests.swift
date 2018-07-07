@@ -11,7 +11,6 @@ import XCTest
 import WLAN
 @testable import LinuxWLAN
 
-
 final class NetlinkTests: XCTestCase {
     
     static var allTests = [
