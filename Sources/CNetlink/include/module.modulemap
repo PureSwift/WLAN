@@ -1,4 +1,5 @@
 module CNetlink [system] {
     header "netlink/netlink.h"
+    link "nl-3"
     export *
 }
