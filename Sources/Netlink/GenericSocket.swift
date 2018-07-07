@@ -38,10 +38,14 @@ public final class NetlinkGenericSocket {
     
     /// Resolve generic netlink family name to its identifier.
     ///
-    /// - Parameter name: Name of generic netlink family
-    public func resolve(name: String) throws {
+    /// - Parameter name: Name of generic netlink family.
+    public func resolve(name: NetlinkGenericFamilyName) throws -> NetlinkGenericFamilyIdentifier {
         
-        try genl_ctrl_resolve(rawPointer, name).nlThrow()
+        let identifier = genl_ctrl_resolve(rawPointer, name.rawValue)
+        
+        try identifier.nlThrow()
+        
+        return NetlinkGenericFamilyIdentifier(rawValue: identifier)
     }
 }
 

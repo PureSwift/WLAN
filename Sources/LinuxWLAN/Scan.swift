@@ -99,12 +99,25 @@ public extension LinuxWLANManager {
         let interfaceIndex = try NetworkInterface.index(for: NetworkInterface(name: interface.name))
         
         // Open socket to kernel.
-        let netlinkSocket = NetlinkSocket()
-        
         // Create file descriptor and bind socket.
-        try netlinkSocket.connect(using: .generic)
+        let netlinkSocket = try NetlinkGenericSocket()
         
+        let driverID = try netlinkSocket.resolve(name: .nl80211)  // Find the "nl80211" driver ID.
         
+        // Create message
+        let message = NetlinkMessage()
+        
+        // Setup which command to run.
+        message.genericView.put(port: 0,
+                                sequence: 0,
+                                family: driverID,
+                                headerLength: 0,
+                                flags: NetlinkMessageFlag.Get.dump,
+                                command: NetlinkGenericCommand.NL80211.getScanResults,
+                                version: 0)
+        
+        // Add message attribute, specify which interface to use.
+        message
         
         var networks = [WLANNetwork]()
         
