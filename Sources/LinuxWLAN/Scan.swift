@@ -96,13 +96,17 @@ public extension LinuxWLANManager {
     #if os(Linux) || Xcode
     internal func scanResults(for interface: WLANInterface) throws -> [WLANNetwork] {
         
+        var networks = [WLANNetwork]()
+        
         let interfaceIndex = try NetworkInterface.index(for: NetworkInterface(name: interface.name))
         
         // Open socket to kernel.
-        // Create file descriptor and bind socket.
-        let netlinkSocket = try NetlinkGenericSocket()
+        let netlinkSocket = NetlinkSocket()
         
-        let driverID = try netlinkSocket.resolve(name: .nl80211)  // Find the "nl80211" driver ID.
+        // Create file descriptor and bind socket.
+        try netlinkSocket.connect(using: .generic)
+        
+        let driverID = try netlinkSocket.genericView.resolve(name: .nl80211)  // Find the "nl80211" driver ID.
         
         // Create message
         let message = NetlinkMessage()
@@ -119,10 +123,14 @@ public extension LinuxWLANManager {
         // Add message attribute, specify which interface to use.
         try message.setValue(UInt32(interfaceIndex), for: NetlinkAttribute.NL80211.interfaceIndex)
         
-        netlinkSocket
+        // Add the callback.
         
-        var networks = [WLANNetwork]()
         
+        // Send the message.
+        try netlinkSocket.send(message: message)
+        
+        // Retrieve the kernel's answer
+        try netlinkSocket.recieve()
         
         return networks
     }

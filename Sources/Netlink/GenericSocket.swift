@@ -21,17 +21,13 @@ public final class NetlinkGenericSocket {
     
     // MARK: - Properties
     
-    internal let socket: NetlinkSocket
-    
-    internal var rawPointer: OpaquePointer { return socket.rawPointer }
+    internal let internalReference: NetlinkSocket
     
     // MARK: - Initialization
     
-    public init() throws {
+    internal init(_ internalReference: NetlinkSocket) {
         
-        self.socket = NetlinkSocket()
-        
-        try socket.connect(using: .generic)
+        self.internalReference = internalReference
     }
     
     // MARK: - Methods
@@ -49,6 +45,21 @@ public final class NetlinkGenericSocket {
     }
 }
 
-extension NetlinkGenericSocket: Handle { }
+// MARK: - Message Extension
+
+public extension NetlinkSocket {
+    
+    public var genericView: NetlinkGenericSocket {
+        
+        return NetlinkGenericSocket(self)
+    }
+}
+
+// MARK: - ManagedHandle
+
+extension NetlinkGenericSocket: Handle {
+    
+    internal var rawPointer: NetlinkMessage.RawPointer { return internalReference.rawPointer }
+}
 
 #endif
