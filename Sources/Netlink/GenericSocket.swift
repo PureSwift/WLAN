@@ -43,6 +43,17 @@ public final class NetlinkGenericSocket {
         
         return NetlinkGenericFamilyIdentifier(rawValue: identifier)
     }
+    
+    /// Resolve generic netlink group to its identifier.
+    public func resolve(name: NetlinkGenericFamilyName,
+                        group: NetlinkGenericGroup) throws -> Int32 {
+        
+        let identifier = genl_ctrl_resolve_grp(rawPointer, name.rawValue, group.rawValue)
+        
+        try identifier.nlThrow()
+        
+        return identifier
+    }
 }
 
 // MARK: - Message Extension

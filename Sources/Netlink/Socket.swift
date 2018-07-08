@@ -82,6 +82,11 @@ public final class NetlinkSocket {
         self.callback = callback
     }
     
+    public func addMembership(group: Int32) throws {
+        
+        try nl_socket_add_membership(rawPointer, group).nlThrow()
+    }
+    
     // MARK: - Accessors
     
     /// Return the file descriptor of the backing socket.

@@ -60,6 +60,8 @@ internal extension Netlink80211 {
             // Use this wireless interface for scanning.
             let interfaceIndex = try NetworkInterface.index(for: NetworkInterface(name: interface.name))
             
+            print("interface \(interfaceIndex)")
+            
             // Open socket to kernel.
             let netlinkSocket = NetlinkSocket()
             
@@ -68,6 +70,8 @@ internal extension Netlink80211 {
             
             // Find the "nl80211" driver ID.
             let driverID = try netlinkSocket.genericView.resolve(name: .nl80211)  // Find the "nl80211" driver ID.
+            
+            print("nl80211 \(driverID)")
             
             self.interface = interface
             self.interfaceIndex = interfaceIndex
