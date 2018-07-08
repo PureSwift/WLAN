@@ -24,7 +24,6 @@ let package = Package(
             dependencies: [
                 .Target(name: "WLAN"),
                 .Target(name: "CLinuxWLAN"),
-                .Target(name: "CNetlink")
             ]),
         Target(
             name: "LinuxWLAN",
@@ -35,8 +34,6 @@ let package = Package(
             ]),
         Target(
             name: "CLinuxWLAN"),
-        Target(
-            name: "CNetlink"),
         Target(
             name: "WLANTests",
             dependencies: [
