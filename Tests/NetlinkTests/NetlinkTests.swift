@@ -14,15 +14,16 @@ import WLAN
 final class NetlinkTests: XCTestCase {
     
     static var allTests = [
-        ("testSSID", testSSID)
+        ("testMessage", testMessage)
     ]
     
-    func testSSID() {
+    func testMessage() {
         
-        XCTAssertNil(SSID(string: ""), "SSID must be 1-32 octets")
-        XCTAssertNil(SSID(string: "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua"), "SSID must be 1-32 octets")
-        
-        XCTAssertEqual(SSID(string: "ColemanCDA")?.description, "ColemanCDA")
-        XCTAssertEqual(SSID(string: "ColemanCDA"), "ColemanCDA")
+        do {
+            
+            let _ = Data([28, 0, 0, 0, 28, 0, 5, 5, 46, 78, 65, 91, 17, 108, 0, 206, 32, 0, 0, 0, 8, 0, 3, 0, 12, 0, 0, 0])
+            
+            
+        }
     }
 }

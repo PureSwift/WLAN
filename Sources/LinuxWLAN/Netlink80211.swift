@@ -114,6 +114,8 @@ internal extension Netlink80211 {
             
             print("Sent \(sentBytes) bytes to kernel")
             
+            print(message.data.map { $0 })
+            
             // Retrieve the kernel's answer
             try socket.recieve()
             

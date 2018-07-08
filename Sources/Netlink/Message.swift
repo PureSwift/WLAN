@@ -131,6 +131,13 @@ public final class NetlinkMessage {
         return withPayload { Data($0) }
     }
     
+    public var data: Data {
+        
+        let length = NetlinkMessage.totalSize(for: Int(dataLength))
+        
+        return withUnsafePointer { Data(bytes: UnsafeRawPointer($0), count: length) }
+    }
+    
     /// Returns the actual netlink message casted to the type of the netlink message header.
     ///
     /// - Note: The pointer is only guarenteed to be valid for the lifetime of the closure.
