@@ -76,7 +76,8 @@ public struct NetlinkErrorMessage: Error {
         self.flags = flags
         self.sequence = sequence
         self.processID = processID
-        self.payload = payload
+        self.error = error
+        self.request = request
     }
 }
 

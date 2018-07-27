@@ -11,10 +11,7 @@ import Glibc
 import Darwin.C
 #endif
 
-#if os(Linux) || XcodeLinux
-
 import Foundation
-import CNetlink
 import CLinuxWLAN
 
 /// Netlink generic message payload.
@@ -92,5 +89,3 @@ public extension NetlinkMessage {
     
     
 }
-
-#endif

@@ -11,10 +11,7 @@ import Glibc
 import Darwin.C
 #endif
 
-#if os(Linux) || XcodeLinux
-
 import Foundation
-import CNetlink
 import CLinuxWLAN
 
 /// Netlink Socket Protocol
@@ -36,5 +33,3 @@ public extension NetlinkSocketProtocol {
     /// Netlink Routing Protocol
     public static let route = NetlinkSocketProtocol(rawValue: NETLINK_ROUTE)
 }
-
-#endif

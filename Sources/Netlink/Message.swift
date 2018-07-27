@@ -62,7 +62,7 @@ public struct NetlinkMessage {
      kernel to multiplex to the correct sockets. A PID of zero is used
      when sending messages to user space from the kernel.
      */
-    public var processID: UInt32
+    public var processID: pid_t //UInt32
     
     /// Message payload.
     public var payload: Data
@@ -72,7 +72,7 @@ public struct NetlinkMessage {
     public init(type: NetlinkMessageType,
                 flags: NetlinkMessageFlag = 0,
                 sequence: UInt32 = 0,
-                processID: UInt32 = 0,
+                processID: pid_t = getpid(),
                 payload: Data = Data()) {
         
         self.type = type
@@ -95,37 +95,3 @@ public struct NetlinkMessage {
         
     }
 }
-
-// MARK: - ManagedHandle
-
-extension NetlinkMessage: ManagedHandle {
-    
-    typealias RawPointer = NetlinkMessage.UnmanagedPointer.RawPointer
-}
-
-// MARK: - UnmanagedPointer
-
-extension NetlinkMessage {
-    
-    struct UnmanagedPointer: Netlink.UnmanagedPointer {
-        
-        let rawPointer: OpaquePointer
-        
-        @inline(__always)
-        init(_ rawPointer: OpaquePointer) {
-            self.rawPointer = rawPointer
-        }
-        
-        @inline(__always)
-        func retain() {
-            nlmsg_get(rawPointer)
-        }
-        
-        @inline(__always)
-        func release() {
-            nlmsg_free(rawPointer)
-        }
-    }
-}
-
-#endif

@@ -16,7 +16,6 @@ import Darwin.C
 import Foundation
 import WLAN
 import Netlink
-import CNetlink
 import CLinuxWLAN
 
 public final class Netlink80211 {
