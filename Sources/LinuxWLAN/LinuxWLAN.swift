@@ -29,14 +29,14 @@ public final class LinuxWLANManager: WLANManager {
     internal let wirelessExtensions: LinuxWirelessExtensions
     
     /// Netlink commands and operations.
-    internal let netlink: Netlink80211
+    //internal let netlink: Netlink80211
     
     // MARK: - Initialization
     
     public init() throws {
         
         self.wirelessExtensions = try LinuxWirelessExtensions()
-        self.netlink = Netlink80211()
+        //self.netlink = Netlink80211()
     }
     
     // MARK: - Methods
@@ -64,7 +64,7 @@ public final class LinuxWLANManager: WLANManager {
      */
     public func scan(with ssid: SSID?, for interface: WLANInterface) throws -> [WLANNetwork] {
         
-        return try netlink.scan(with: ssid, for: interface)
+        return [] //return try netlink.scan(with: ssid, for: interface)
     }
     
     /**

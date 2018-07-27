@@ -14,8 +14,21 @@ import Darwin.C
 import Foundation
 import CLinuxWLAN
 
+public protocol NetlinkMessageProtocol {
+    
+    init?(data: Data)
+    
+    var data: Data { get }
+    
+    //var header: NetlinkMessageHeader { get }
+    
+    var payload: Data { get }
+}
+
 /// Netlink message payload.
-public struct NetlinkMessage {
+public struct NetlinkMessage: NetlinkMessageProtocol {
+    
+    internal static let minimumLength = NetlinkMessageHeader.length
     
     // MARK: - Properties
     
@@ -62,7 +75,7 @@ public struct NetlinkMessage {
      kernel to multiplex to the correct sockets. A PID of zero is used
      when sending messages to user space from the kernel.
      */
-    public var processID: pid_t //UInt32
+    public var process: pid_t //UInt32
     
     /// Message payload.
     public var payload: Data
@@ -72,26 +85,55 @@ public struct NetlinkMessage {
     public init(type: NetlinkMessageType,
                 flags: NetlinkMessageFlag = 0,
                 sequence: UInt32 = 0,
-                processID: pid_t = getpid(),
+                process: pid_t = getpid(),
                 payload: Data = Data()) {
         
         self.type = type
         self.flags = flags
         self.sequence = sequence
-        self.processID = processID
+        self.process = process
         self.payload = payload
     }
+}
+
+public extension NetlinkMessage {
     
-    // MARK: - Methods
-    
-    // MARK: - Attributes
-    
-    /// Add 32 bit integer attribute to netlink message.
-    ///
-    /// - Parameter value: Numeric value to store as payload.
-    /// - Parameter attribute: Attribute type.
-    public func setValue(_ value: UInt32, for attribute: NetlinkAttribute) throws {
+    public init?(data: Data) {
         
+        guard let header = NetlinkMessageHeader(data: Data(data.prefix(NetlinkMessageHeader.length)))
+            else { return nil }
         
+        self.type = header.type
+        self.flags = header.flags
+        self.sequence = header.sequence
+        self.process = header.process
+        
+        if data.count > NetlinkMessageHeader.length {
+            
+            let payloadLength = Int(header.length) - NetlinkMessageHeader.length
+            
+            self.payload = Data(data.suffix(from: NetlinkMessageHeader.length).prefix(payloadLength))
+            
+        } else {
+            
+            self.payload = Data()
+        }
+    }
+    
+    public var data: Data {
+        
+        fatalError()
+    }
+}
+
+public extension NetlinkMessage {
+    
+    var header: NetlinkMessageHeader {
+        
+        return NetlinkMessageHeader(length: length,
+                                    type: type,
+                                    flags: flags,
+                                    sequence: sequence,
+                                    process: process)
     }
 }

@@ -8,7 +8,7 @@
 
 #if os(Linux)
     import Glibc
-#elseif os(macOS) || os(iOS)
+#elseif os(macOS)
     import Darwin.C
 #endif
 
@@ -158,7 +158,59 @@ public struct NetlinkMessageHeader {
      kernel to multiplex to the correct sockets. A PID of zero is used
      when sending messages to user space from the kernel.
      */
-    public var proccessID: UInt32
+    public var process: pid_t
+    
+    public init(length: UInt32,
+                type: NetlinkMessageType,
+                flags: NetlinkMessageFlag,
+                sequence: UInt32,
+                process: pid_t = getpid()) {
+        
+        self.length = length
+        self.type = type
+        self.flags = flags
+        self.sequence = sequence
+        self.process = process
+    }
+}
+
+
+
+public extension NetlinkMessageHeader {
+    
+    public init?(data: Data) {
+        
+        guard data.count == type(of: self).length
+            else { return nil }
+        
+        self.length = UInt32(bytes: (data[0], data[1], data[2], data[3]))
+        self.type = NetlinkMessageType(rawValue: UInt16(bytes: (data[4], data[5])))
+        self.flags = NetlinkMessageFlag(rawValue: UInt16(bytes: (data[6], data[7])))
+        self.sequence = UInt32(bytes: (data[8], data[9], data[10], data[11]))
+        self.process = pid_t(bytes: (data[12], data[13], data[14], data[15]))
+    }
+    
+    public var data: Data {
+        
+        return Data([
+            length.bytes.0,
+            length.bytes.1,
+            length.bytes.2,
+            length.bytes.3,
+            type.rawValue.bytes.0,
+            type.rawValue.bytes.1,
+            flags.rawValue.bytes.0,
+            flags.rawValue.bytes.1,
+            sequence.bytes.0,
+            sequence.bytes.1,
+            sequence.bytes.2,
+            sequence.bytes.3,
+            process.bytes.0,
+            process.bytes.1,
+            process.bytes.2,
+            process.bytes.3
+            ])
+    }
 }
 
 // MARK: - Linux Native Type
@@ -171,6 +223,6 @@ public extension nlmsghdr {
                   nlmsg_type: __u16(header.type.rawValue),
                   nlmsg_flags: __u16(header.flags.rawValue),
                   nlmsg_seq: __u32(header.sequence),
-                  nlmsg_pid: __u32(header.proccessID))
+                  nlmsg_pid: __u32(header.process))
     }
 }

@@ -15,7 +15,9 @@ import Foundation
 import CLinuxWLAN
 
 /// Netlink generic message payload.
-public struct NetlinkGenericMessage {
+public struct NetlinkGenericMessage: NetlinkMessageProtocol {
+    
+    internal static let headerLength = NetlinkMessageHeader.length + 4
     
     // MARK: - Properties
     
@@ -62,30 +64,73 @@ public struct NetlinkGenericMessage {
      kernel to multiplex to the correct sockets. A PID of zero is used
      when sending messages to user space from the kernel.
      */
-    public var processID: UInt32
+    public var process: pid_t
+    
+    public var command: NetlinkGenericCommand
+    
+    public var version: NetlinkGenericVersion
+    
+    //internal var unused: UInt16 // padding
     
     /// Message payload.
     public var payload: Data
     
     // MARK: - Initialization
     
-    public init(type: NetlinkMessageType,
+    public init(type: NetlinkMessageType = NetlinkMessageType(),
                 flags: NetlinkMessageFlag = 0,
                 sequence: UInt32 = 0,
-                processID: UInt32 = 0,
+                process: pid_t = getpid(),
+                command: NetlinkGenericCommand = 0,
+                version: NetlinkGenericVersion = 0,
                 payload: Data = Data()) {
         
         self.type = type
         self.flags = flags
         self.sequence = sequence
-        self.processID = processID
+        self.process = process
+        self.command = command
+        self.version = version
         self.payload = payload
     }
 }
 
-// MARK: - Message Extension
-
-public extension NetlinkMessage {
+public extension NetlinkGenericMessage {
     
+    public init?(data: Data) {
+        
+        let headerLength = type(of: self).headerLength
+        
+        guard data.count >= headerLength
+            else { return nil }
+        
+        let length = UInt32(bytes: (data[0], data[1], data[2], data[3]))
+        
+        // netlink header
+        self.type = NetlinkMessageType(rawValue: UInt16(bytes: (data[4], data[5])))
+        self.flags = NetlinkMessageFlag(rawValue: UInt16(bytes: (data[6], data[7])))
+        self.sequence = UInt32(bytes: (data[8], data[9], data[10], data[11]))
+        self.process = pid_t(bytes: (data[12], data[13], data[14], data[15]))
+        
+        // generic header
+        self.command = NetlinkGenericCommand(rawValue: data[16])
+        self.version = NetlinkGenericVersion(rawValue: data[17])
+        
+        // payload 
+        if data.count > type(of: self).headerLength {
+            
+            let payloadLength = Int(length) - headerLength
+            
+            self.payload = Data(data.suffix(from: headerLength).prefix(payloadLength))
+            
+        } else {
+            
+            self.payload = Data()
+        }
+    }
     
+    public var data: Data {
+        
+        fatalError()
+    }
 }

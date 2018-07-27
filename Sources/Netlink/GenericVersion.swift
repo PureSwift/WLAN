@@ -1,11 +1,12 @@
 //
-//  GenericCommand.swift
-//  Netlink
+//  GenericVersion.swift
+//  WLAN
 //
-//  Created by Alsey Coleman Miller on 7/7/18.
+//  Created by Alsey Coleman Miller on 7/27/18.
+//
 //
 
-public struct NetlinkGenericCommand: RawRepresentable {
+public struct NetlinkGenericVersion: RawRepresentable {
     
     public let rawValue: UInt8
     
@@ -17,7 +18,7 @@ public struct NetlinkGenericCommand: RawRepresentable {
 
 // MARK: - ExpressibleByIntegerLiteral
 
-extension NetlinkGenericCommand: ExpressibleByIntegerLiteral {
+extension NetlinkGenericVersion: ExpressibleByIntegerLiteral {
     
     public init(integerLiteral value: UInt8) {
         

@@ -30,7 +30,7 @@ public struct NetlinkMessageType: RawRepresentable {
     
     public let rawValue: UInt16
     
-    public init(rawValue: UInt16) {
+    public init(rawValue: UInt16 = 0) {
         
         self.rawValue = rawValue
     }
