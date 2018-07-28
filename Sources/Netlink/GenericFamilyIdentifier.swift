@@ -35,18 +35,19 @@ public extension NetlinkSocket {
     /// Query the family name.
     func resolve(name: NetlinkGenericFamilyName) throws -> NetlinkGenericFamilyIdentifier {
         
-        // nl_put_str(nl, CTRL_ATTR_FAMILY_NAME, name);
-        let attribute = NetlinkAttribute(type: NetlinkAttributeType.Generic.familyName, payload: <#T##Data#>)
+        let attribute = NetlinkAttribute(value: name.rawValue,
+                                         type: NetlinkAttributeType.Generic.familyName)
         
-        // nl_new_cmd(nl, GENL_ID_CTRL, CTRL_CMD_GETFAMILY, 1);
         let message = NetlinkGenericMessage(type: NetlinkMessageType(rawValue: UInt16(GENL_ID_CTRL)),
                                             flags: .request,
                                             sequence: 0,
                                             process: 0, // kernel
                                             command: .getFamily,
                                             version: 1,
-                                            payload: Data())
+                                            payload: attribute.paddedData)
         
         
+        
+        fatalError()
     }
 }

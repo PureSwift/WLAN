@@ -18,7 +18,7 @@ public struct NetlinkAttributeType: RawRepresentable {
     }
 }
 
-public extension NetlinkMessageType {
+public extension NetlinkAttributeType {
     
     public enum Generic {
         

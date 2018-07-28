@@ -50,7 +50,7 @@ internal extension Netlink80211 {
         let socket: NetlinkSocket
         
         // "nl80211" driver ID
-        //let driverID: NetlinkGenericFamilyIdentifier
+        let driver: NetlinkGenericFamilyIdentifier
         
         init(interface: WLANInterface) throws {
             
@@ -64,14 +64,14 @@ internal extension Netlink80211 {
             let netlinkSocket = try NetlinkSocket(.generic)
             
             // Find the "nl80211" driver ID.
-            //let driverID = try netlinkSocket.genericView.resolve(name: .nl80211)  // Find the "nl80211" driver ID.
+            let driver = try netlinkSocket.resolve(name: .nl80211)  // Find the "nl80211" driver ID.
             
-            //print("nl80211 \(driverID)")
+            print("nl80211 \(driver)")
             
             self.interface = interface
             self.interfaceIndex = interfaceIndex
             self.socket = netlinkSocket
-            //self.driverID = driverID
+            self.driver = driver
         }
         
         /// Issue NL80211_CMD_TRIGGER_SCAN to the kernel and wait for it to finish.

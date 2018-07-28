@@ -76,6 +76,13 @@ public extension NetlinkAttribute {
             type.rawValue.bytes.1
             ]) + payload
     }
+    
+    public var paddedData: Data {
+        
+        let padding = paddedLength - Int(length)
+        
+        return data + Data(count: padding)
+    }
 }
 
 // MARK: - Common Attribute Types
@@ -111,9 +118,13 @@ public extension NetlinkAttribute {
     }
 }
 
-private extension NetlinkAttribute {
+public extension NetlinkAttribute {
     
-    //func cast <T> (to type: )
+    init(value: String, type: NetlinkAttributeType) {
+        
+        self.payload = Data(unsafeBitCast(value.utf8CString, to: ContiguousArray<UInt8>.self))
+        self.type = type
+    }
 }
 
 public extension UInt32 {
