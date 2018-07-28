@@ -97,7 +97,8 @@ public extension NetlinkSocket {
         let recievedData = try recieve()
         
         // parse response
-        guard let response = NetlinkGenericMessage(data: recievedData),
+        guard let messages = try? NetlinkGenericMessage.from(data: recievedData),
+            let response = messages.first,
             let attributes = try? NetlinkAttribute.from(message: response),
             let identifierAttribute = attributes.first(where: { $0.type == NetlinkAttributeType.Generic.familyIdentifier }),
             let identifier = UInt16(attribute: identifierAttribute)

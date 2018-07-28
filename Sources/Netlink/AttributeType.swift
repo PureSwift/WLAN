@@ -8,7 +8,7 @@
 import CLinuxWLAN
 
 /// Netlink Attribute Type
-public struct NetlinkAttributeType: RawRepresentable {
+public struct NetlinkAttributeType: RawRepresentable, OptionSet {
     
     public let rawValue: UInt16
     
@@ -41,6 +41,10 @@ extension NetlinkAttributeType: Hashable {
 // MARK: - Static Types
 
 public extension NetlinkAttributeType {
+    
+    public static let nested = NetlinkAttributeType(rawValue: UInt16(NLA_F_NESTED))
+    
+    public static let networkByteOrder = NetlinkAttributeType(rawValue: UInt16(NLA_F_NET_BYTEORDER))
     
     public enum Generic {
         

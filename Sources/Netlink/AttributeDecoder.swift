@@ -180,9 +180,11 @@ fileprivate extension NetlinkAttributeDecoder.Decoder {
         // push and decode container
         let container: NetlinkAttributeDecoder.Stack.Container
         
-        if attribute.type.rawValue == 0 { // nested ?
+        if attribute.type.contains(.nested) {
             
-            fatalError("Nested attribute")
+            let nestedAttributes = try NetlinkAttribute.from(data: attribute.payload)
+            
+            container = .attributes(nestedAttributes)
             
         } else {
             
