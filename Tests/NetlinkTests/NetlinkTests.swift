@@ -14,9 +14,56 @@ import WLAN
 final class NetlinkTests: XCTestCase {
     
     static var allTests = [
+        ("testResolveGenericFamily", testResolveGenericFamily),
         ("testGetScanResultsMessage", testGetScanResultsMessage),
         ("testErrorMessage", testErrorMessage)
     ]
+    
+    func testResolveGenericFamily() {
+        
+        /**
+         let attribute = NetlinkAttribute(value: name.rawValue, type: NetlinkAttributeType.Generic.familyName)
+         
+         let message = NetlinkGenericMessage(type: NetlinkMessageType(rawValue: UInt16(GENL_ID_CTRL)),
+            flags: .request,
+            sequence: 0,
+            process: 0, // kernel
+            command: .getFamily,
+            version: 1,
+            payload: attribute.paddedData)
+         
+         Interface: wlx74da3826382c
+         Wireless Extension Version: 0
+         Wireless Extension Name: IEEE 802.11
+         Resolve identifier for NetlinkGenericFamilyName(rawValue: "nl80211")
+         [32, 0, 0, 0, 16, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 1, 0, 0, 12, 0, 2, 0, 110, 108, 56, 48, 50, 49, 49, 0]
+         */
+        
+        let data = Data([32, 0, 0, 0, 16, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 1, 0, 0, 12, 0, 2, 0, 110, 108, 56, 48, 50, 49, 49, 0])
+        
+        guard let message = NetlinkGenericMessage(data: data)
+            else { XCTFail("Could not parse message from data"); return }
+        
+        XCTAssertEqual(message.data, data)
+        XCTAssertEqual(Int(message.length), data.count)
+        XCTAssertEqual(message.length, 32)
+        XCTAssertEqual(message.type.rawValue, 16)
+        XCTAssertEqual(message.command, .getFamily)
+        XCTAssertEqual(message.version.rawValue, 1)
+        XCTAssertEqual(message.flags.rawValue, 1)
+        XCTAssertEqual(message.sequence, 0)
+        
+        do {
+            
+            var decoder = NetlinkAttributeDecoder()
+            decoder.log = { print("Decoder:", $0) }
+            let command = try decoder.decode(NetlinkGetGenericFamilyIdentifierCommand.self, from: message)
+            
+            XCTAssertEqual(command.name.rawValue, "nl80211")
+        }
+            
+        catch { XCTFail("Could not decode: \(error)"); return }
+    }
     
     func testGetScanResultsMessage() {
         
@@ -49,7 +96,7 @@ final class NetlinkTests: XCTestCase {
         let data = Data([28, 0, 0, 0, 28, 0, 1, 5, 0, 0, 0, 0, 47, 104, 0, 0, 32, 0, 0, 0, 8, 0, 3, 0, 3, 0, 0, 0])
         
         guard let message = NetlinkGenericMessage(data: data)
-            else { XCTFail(); return }
+            else { XCTFail("Could not parse message from data"); return }
         
         XCTAssertEqual(message.data, data)
         XCTAssertEqual(message.length, 28)
@@ -70,9 +117,7 @@ final class NetlinkTests: XCTestCase {
         }
         
         catch { XCTFail("Could not decode: \(error)"); return }
-        
-        //dump(message)
-        
+                
         var attributes = [NetlinkAttribute]()
         XCTAssertNoThrow(attributes = try NetlinkAttribute.from(message: message))
         
