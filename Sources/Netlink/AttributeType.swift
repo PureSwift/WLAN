@@ -18,6 +18,28 @@ public struct NetlinkAttributeType: RawRepresentable {
     }
 }
 
+// MARK: - Equatable
+
+extension NetlinkAttributeType: Equatable {
+    
+    public static func == (lhs: NetlinkAttributeType, rhs: NetlinkAttributeType) -> Bool {
+        
+        return lhs.rawValue == rhs.rawValue
+    }
+}
+
+// MARK: - Hashable
+
+extension NetlinkAttributeType: Hashable {
+    
+    public var hashValue: Int {
+        
+        return rawValue.hashValue
+    }
+}
+
+// MARK: - Static Types
+
 public extension NetlinkAttributeType {
     
     public enum Generic {

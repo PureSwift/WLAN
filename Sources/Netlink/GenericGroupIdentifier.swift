@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import CLinuxWLAN
 
 /// Netlink Generic Family Group Identifier
 public struct NetlinkGenericGroupIdentifier: RawRepresentable {
