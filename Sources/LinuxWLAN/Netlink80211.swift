@@ -115,7 +115,15 @@ internal extension Netlink80211 {
             guard let response = NetlinkGenericMessage(data: responseData)
                 else { throw NetlinkSocketError.invalidData(responseData) }
             
+            let attributes = try NetlinkAttribute.from(data: response.payload)
             
+            //attributes.forEach { print("Type \( $0.type):", String(data: $0.payload, encoding: .utf8)) }
+            print(String(data: response.payload, encoding: .utf8) ?? "")
+            
+            if let bssid = attributes.first(where: { $0.type == NetlinkAttributeType.NL80211.BSS.bssid }) {
+                
+                print("BSSID:",  bssid.payload.map { $0 })
+            }
             
             return networks
         }
