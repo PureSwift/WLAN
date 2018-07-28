@@ -124,7 +124,7 @@ final class NetlinkTests: XCTestCase {
         guard attributes.count == 1
             else { XCTFail(); return }
         
-        XCTAssertEqual(UInt32(attribute: attributes[0]), 3)
+        XCTAssertEqual(UInt32(attributeData: attributes[0].payload), 3)
         XCTAssertEqual(attributes[0].payload, Data([0x03, 0x00, 0x00, 0x00]))
         XCTAssertEqual(attributes[0].type.rawValue, NetlinkAttributeType.NL80211.interfaceIndex.rawValue)
         

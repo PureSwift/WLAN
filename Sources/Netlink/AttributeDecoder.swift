@@ -180,15 +180,17 @@ fileprivate extension NetlinkAttributeDecoder.Decoder {
         // push and decode container
         let container: NetlinkAttributeDecoder.Stack.Container
         
+        // check if attribute for single value or nested attribute
         if attribute.type.contains(.nested) {
             
             let nestedAttributes = try NetlinkAttribute.from(data: attribute.payload)
             
+            // nested attribute
             container = .attributes(nestedAttributes)
             
         } else {
             
-            /// single value container for attributes
+            // single value container for attributes
             container = .attribute(attribute)
         }
         
@@ -692,7 +694,7 @@ extension UInt64: NetlinkAttributeDecodable {
     
     public init?(attributeData data: Data) {
         
-        guard data.count == MemoryLayout<UInt32>.size
+        guard data.count == MemoryLayout<UInt64>.size
             else { return nil }
         
         self.init(bytes: (data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7]))
@@ -703,7 +705,7 @@ extension Int8: NetlinkAttributeDecodable {
     
     public init?(attributeData data: Data) {
         
-        guard data.count == MemoryLayout<UInt8>.size
+        guard data.count == MemoryLayout<Int8>.size
             else { return nil }
         
         self = Int8(bitPattern: data[0])
@@ -714,7 +716,7 @@ extension Int16: NetlinkAttributeDecodable {
     
     public init?(attributeData data: Data) {
         
-        guard data.count == MemoryLayout<UInt16>.size
+        guard data.count == MemoryLayout<Int16>.size
             else { return nil }
         
         self.init(bytes: (data[0], data[1]))
@@ -725,7 +727,7 @@ extension Int32: NetlinkAttributeDecodable {
     
     public init?(attributeData data: Data) {
         
-        guard data.count == MemoryLayout<UInt32>.size
+        guard data.count == MemoryLayout<Int32>.size
             else { return nil }
         
         self.init(bytes: (data[0], data[1], data[2], data[3]))
@@ -736,7 +738,7 @@ extension Int64: NetlinkAttributeDecodable {
     
     public init?(attributeData data: Data) {
         
-        guard data.count == MemoryLayout<UInt32>.size
+        guard data.count == MemoryLayout<Int32>.size
             else { return nil }
         
         self.init(bytes: (data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7]))

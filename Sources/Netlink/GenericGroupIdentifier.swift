@@ -49,7 +49,7 @@ public extension NetlinkSocket {
         guard let response = NetlinkGenericMessage(data: recievedData),
             let attributes = try? NetlinkAttribute.from(message: response),
             let identifierAttribute = attributes.first(where: { $0.type == NetlinkAttributeType.Generic.familyIdentifier }),
-            let identifier = UInt16(attribute: identifierAttribute)
+            let identifier = UInt16(attributeData: identifierAttribute.payload)
             else { throw NetlinkSocketError.invalidData(recievedData) }
         
         return NetlinkGenericFamilyIdentifier(rawValue: Int32(identifier))
