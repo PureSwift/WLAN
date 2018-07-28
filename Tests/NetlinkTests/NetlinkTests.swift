@@ -14,7 +14,8 @@ import WLAN
 final class NetlinkTests: XCTestCase {
     
     static var allTests = [
-        ("testGetScanResultsMessage", testGetScanResultsMessage)
+        ("testGetScanResultsMessage", testGetScanResultsMessage),
+        ("testErrorMessage", testErrorMessage)
     ]
     
     func testGetScanResultsMessage() {
@@ -83,41 +84,34 @@ final class NetlinkTests: XCTestCase {
          interface 3
          nl80211 NetlinkGenericFamilyIdentifier(rawValue: 28)
          Sent 28 bytes to kernel
-         [28, 0, 0, 0, 28, 0, 1, 5, 0, 0, 0, 0, 79, 100, 0, 0, 32, 0, 0, 0, 8, 0, 3, 0, 3, 0, 0, 0]
+         [28, 0, 0, 0, 28, 0, 1, 5, 0, 0, 0, 0, 52, 105, 0, 0, 32, 0, 0, 0, 8, 0, 3, 0, 3, 0, 0, 0]
          Recieved 48 bytes from the kernel
-         [48, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 79, 100, 0, 0, 161, 255, 255, 255, 28, 0, 0, 0, 28, 0, 1, 5, 0, 0, 0, 0, 79, 100, 0, 0, 32, 0, 0, 0, 8, 0, 3, 0, 3, 0, 0, 0]
-         [Netlink.NetlinkAttribute(type: Netlink.NetlinkAttributeType(rawValue: 0), payload: 24 bytes)]
-         Networks:
-         
-         Interface: en0
-         Networks:
-         COLEMANCDA (18:A6:F7:99:81:90)
+         [48, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 52, 105, 0, 0, 161, 255, 255, 255, 28, 0, 0, 0, 28, 0, 1, 5, 0, 0, 0, 0, 52, 105, 0, 0, 32, 0, 0, 0, 8, 0, 3, 0, 3, 0, 0, 0]
          */
         
-        let data = Data([48, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 52, 105, 0, 0, 161, 255, 255, 255, 28, 0, 0, 0, 28, 0, 1, 5, 0, 0, 0, 0, 52, 105, 0, 0, 32, 0, 0, 0, 8, 0, 3, 0, 3, 0, 0, 0])
+        let data = Data([48, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 52, 105, 0, 0, 161, 255, 255, 255,
+                         28, 0, 0, 0, 28, 0, 1, 5, 0, 0, 0, 0, 52, 105, 0, 0, 32, 0, 0, 0, 8, 0, 3, 0, 3, 0, 0, 0])
         
-        guard let message = NetlinkGenericMessage(data: data)
-            else { XCTFail(); return }
+        let originalMessageData = [28, 0, 0, 0, 28, 0, 1, 5, 0, 0, 0, 0, 52, 105, 0, 0, 32, 0, 0, 0, 8, 0, 3, 0, 3, 0, 0, 0]
         
-        print(message.payload.map { String($0, radix: 16) })
+        guard let error = NetlinkErrorMessage(data: data)
+            else { XCTFail("Could not parse message"); return }
         
-        XCTAssertEqual(message.data, data)
-        XCTAssertEqual(message.length, 48)
-        XCTAssertEqual(Int(message.length), data.count)
-        XCTAssertEqual(message.sequence, 0)
-        XCTAssertEqual(message.flags, [])
-        XCTAssertEqual(message.type, NetlinkMessageType.error)
-        XCTAssertEqual(message.command.rawValue, NetlinkGenericCommand.NL80211.getScanResults.rawValue)
-        XCTAssertEqual(message.version.rawValue, 0)
+        XCTAssertEqual(error.data, data)
+        XCTAssertEqual(error.length, 48)
+        XCTAssertEqual(Int(error.length), data.count)
+        XCTAssertEqual(error.sequence, 0)
+        XCTAssertEqual(error.flags, [])
+        XCTAssertEqual(error.type, .error)
+        XCTAssertEqual(error.error.code.rawValue, 95)
+        
+        #if os(Linux)
+        XCTAssertEqual(error.error.code, .EOPNOTSUPP)
+        #endif
         
         var attributes = [NetlinkAttribute]()
-        XCTAssertNoThrow(attributes = try NetlinkAttribute.from(data: message.payload))
+        //XCTAssertNoThrow(attributes = try NetlinkAttribute.from(data: message.payload))
         
         dump(attributes)
-        
-        if let bssid = attributes.first(where: { $0.type == NetlinkAttributeType.NL80211.bss }) {
-            
-            print("BSSID:", bssid.payload.map { $0 })
-        }
     }
 }

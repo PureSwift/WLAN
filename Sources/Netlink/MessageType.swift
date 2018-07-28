@@ -36,6 +36,18 @@ public struct NetlinkMessageType: RawRepresentable {
     }
 }
 
+// MARK: - Equatable
+
+extension NetlinkMessageType: Equatable {
+    
+    public static func == (lhs: NetlinkMessageType, rhs: NetlinkMessageType) -> Bool {
+        
+        return lhs.rawValue == rhs.rawValue
+    }
+}
+
+// MARK: - Types
+
 public extension NetlinkMessageType {
     
     /// No operation, message must be discarded
