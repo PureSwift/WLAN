@@ -8,6 +8,14 @@
 
 import Foundation
 
+internal extension size_t {
+    
+    var extendTo4Bytes: size_t {
+        
+        return self + ((4 - (self & 3)) & 3);
+    }
+}
+
 internal extension Int64 {
     
     func toInt() -> Int? {

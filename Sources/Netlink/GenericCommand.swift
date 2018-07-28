@@ -15,6 +15,16 @@ public struct NetlinkGenericCommand: RawRepresentable {
     }
 }
 
+// MARK: - Equatable
+
+extension NetlinkGenericCommand: Equatable {
+    
+    public static func == (lhs: NetlinkGenericCommand, rhs: NetlinkGenericCommand) -> Bool {
+        
+        return lhs.rawValue == rhs.rawValue
+    }
+}
+
 // MARK: - ExpressibleByIntegerLiteral
 
 extension NetlinkGenericCommand: ExpressibleByIntegerLiteral {

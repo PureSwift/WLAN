@@ -28,7 +28,7 @@ public struct NetlinkGenericMessage: NetlinkMessageProtocol {
      */
     public var length: UInt32 {
         
-        return UInt32(NetlinkMessageHeader.length + payload.count)
+        return UInt32(NetlinkGenericMessage.headerLength + payload.count)
     }
     
     /**
@@ -70,7 +70,7 @@ public struct NetlinkGenericMessage: NetlinkMessageProtocol {
     
     public var version: NetlinkGenericVersion
     
-    //internal var unused: UInt16 // padding
+    internal var unused: UInt16 = 0 // padding
     
     /// Message payload.
     public var payload: Data
@@ -115,6 +115,7 @@ public extension NetlinkGenericMessage {
         // generic header
         self.command = NetlinkGenericCommand(rawValue: data[16])
         self.version = NetlinkGenericVersion(rawValue: data[17])
+        self.unused = UInt16(bytes: (data[18], data[19]))
         
         // payload 
         if data.count > type(of: self).headerLength {
@@ -131,6 +132,27 @@ public extension NetlinkGenericMessage {
     
     public var data: Data {
         
-        fatalError()
+        return Data([
+            length.bytes.0,
+            length.bytes.1,
+            length.bytes.2,
+            length.bytes.3,
+            type.rawValue.bytes.0,
+            type.rawValue.bytes.1,
+            flags.rawValue.bytes.0,
+            flags.rawValue.bytes.1,
+            sequence.bytes.0,
+            sequence.bytes.1,
+            sequence.bytes.2,
+            sequence.bytes.3,
+            process.bytes.0,
+            process.bytes.1,
+            process.bytes.2,
+            process.bytes.3,
+            command.rawValue,
+            version.rawValue,
+            unused.bytes.0,
+            unused.bytes.1
+            ]) + payload
     }
 }

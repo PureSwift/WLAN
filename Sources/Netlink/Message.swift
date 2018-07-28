@@ -20,8 +20,6 @@ public protocol NetlinkMessageProtocol {
     
     var data: Data { get }
     
-    //var header: NetlinkMessageHeader { get }
-    
     var payload: Data { get }
 }
 
@@ -122,7 +120,7 @@ public extension NetlinkMessage {
     
     public var data: Data {
         
-        fatalError()
+        return header.data + payload
     }
 }
 

@@ -14,12 +14,19 @@ import Foundation
 /// - Note: As with every other integer in netlink sockets, the type and length values are also encoded with host endianness. Finally, netlink attributes must also be padded to a 4 byte boundary, just like netlink messages.
 public struct NetlinkAttribute {
     
+    internal static let headerLength = 4
+    
     /**
      Length (16 bits): the length of the entire attribute, including length, type, and value fields. May not be set to a 4 byte boundary. For example, if length is 17 bytes, the attribute will be padded to 20 bytes, but the 3 bytes of padding should not be interpreted as meaningful.
      */
     public var length: UInt16 {
         
-        return UInt16(4 + payload.count)
+        return UInt16(NetlinkAttribute.headerLength + payload.count)
+    }
+    
+    public var paddedLength: Int {
+        
+        return Int(length).extendTo4Bytes
     }
     
     /**
@@ -32,10 +39,42 @@ public struct NetlinkAttribute {
      */
     public var payload: Data
     
-    public init(type: NetlinkAttributeType, payload: Data) {
+    public init(type: NetlinkAttributeType,
+                payload: Data) {
         
         self.type = type
         self.payload = payload
+    }
+}
+
+public extension NetlinkAttribute {
+    
+    public init?(data: Data) {
+        
+        guard data.count >= NetlinkAttribute.headerLength
+            else { return nil }
+        
+        let length = UInt16(bytes: (data[0], data[1]))
+        self.type = NetlinkAttributeType(rawValue: UInt16(bytes: (data[2], data[3])))
+        
+        if data.count > NetlinkAttribute.headerLength {
+            
+            self.payload = Data(data[NetlinkAttribute.headerLength ..< Int(length)])
+            
+        } else {
+            
+            self.payload = Data()
+        }
+    }
+    
+    public var data: Data {
+        
+        return Data([
+            length.bytes.0,
+            length.bytes.1,
+            type.rawValue.bytes.0,
+            type.rawValue.bytes.1
+            ]) + payload
     }
 }
 
@@ -47,7 +86,7 @@ public extension NetlinkAttribute {
         
         var value = value
         
-        self.payload = withUnsafePointer(to: &value, { Data.init(bytes: $0, count: MemoryLayout<T>.size) })
+        self.payload = withUnsafePointer(to: &value, { Data(bytes: $0, count: MemoryLayout<T>.size) })
         self.type = type
     }
     
@@ -69,5 +108,62 @@ public extension NetlinkAttribute {
     init(value: UInt64, type: NetlinkAttributeType) {
         
         self.init(copying: value, type: type)
+    }
+}
+
+private extension NetlinkAttribute {
+    
+    //func cast <T> (to type: )
+}
+
+public extension UInt32 {
+    
+    init?(attribute: NetlinkAttribute) {
+        
+        let data = attribute.payload
+        
+        guard data.count == MemoryLayout<UInt32>.size
+            else { return nil }
+        
+        self.init(bytes: (data[0], data[1], data[2], data[3]))
+    }
+}
+
+// MARK: - Decoding
+
+public extension NetlinkAttribute {
+    
+    public enum DecodingError: Error {
+        
+        case invalidAttribute(index: Int, Data)
+    }
+    
+    public static func from <T: NetlinkMessageProtocol> (message: T) throws -> [NetlinkAttribute] {
+        
+        return try from(data: message.payload)
+    }
+    
+    public static func from(data: Data) throws -> [NetlinkAttribute] {
+        
+        var attributes = [NetlinkAttribute]()
+        
+        var index = 0
+        while index < data.count {
+            
+            let length = Int(UInt16(bytes: (data[index], data[index + 1])))
+            
+            let actualLength = length.extendTo4Bytes
+            
+            let attributeData = Data(data[index ..< index + actualLength])
+            
+            guard let attribute = NetlinkAttribute(data: attributeData)
+                else  { throw DecodingError.invalidAttribute(index: index, attributeData) }
+            
+            attributes.append(attribute)
+            
+            index += actualLength
+        }
+        
+        return attributes
     }
 }
