@@ -56,8 +56,7 @@ public final class NetlinkSocket {
     
     // MARK: - Methods
     
-    @discardableResult
-    public func send(_ data: Data) throws -> Int {
+    public func send(_ data: Data) throws {
         
         var address = sockaddr_nl(nl_family: __kernel_sa_family_t(AF_NETLINK),
                                   nl_pad: 0,
@@ -75,7 +74,8 @@ public final class NetlinkSocket {
         guard sentBytes >= 0
             else { throw POSIXError.fromErrno! }
         
-        return sentBytes
+        guard sentBytes == data.count
+            else { throw NetlinkSocketError.invalidSentBytes(sentBytes) }
     }
     
     public func recieve <T: NetlinkMessageProtocol> (_ message: T.Type) throws -> [T] {
@@ -131,6 +131,7 @@ public final class NetlinkSocket {
 public enum NetlinkSocketError: Error {
     
     case invalidProtocol
+    case invalidSentBytes(Int)
     case invalidData(Data)
 }
 

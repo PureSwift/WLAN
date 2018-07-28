@@ -106,7 +106,5 @@ final class NetlinkTests: XCTestCase {
         #if os(Linux)
         XCTAssertEqual(error.error.code, .EOPNOTSUPP)
         #endif
-        
-        print(data.map { $0 })
     }
 }

@@ -95,7 +95,7 @@ internal extension Netlink80211 {
                                                 payload: attribute.paddedData)
             
             // Send the message.
-            let sentBytes = try socket.send(message.data)
+            try socket.send(message.data)
             
             // Retrieve the kernel's answer
             let messages = try socket.recieve(NetlinkGenericMessage.self)

@@ -54,6 +54,6 @@ func run(arguments: [String] = CommandLine.arguments) throws {
 do { try run() }
     
 catch {
-    print("\(error)")
+    print("Error:", error)
     exit(1)
 }
