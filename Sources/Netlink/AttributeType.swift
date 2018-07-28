@@ -5,6 +5,8 @@
 //  Created by Alsey Coleman Miller on 7/7/18.
 //
 
+import CLinuxWLAN
+
 /// Netlink Attribute Type
 public struct NetlinkAttributeType: RawRepresentable {
     
@@ -13,5 +15,13 @@ public struct NetlinkAttributeType: RawRepresentable {
     public init(rawValue: UInt16) {
         
         self.rawValue = rawValue
+    }
+}
+
+public extension NetlinkMessageType {
+    
+    public enum Generic {
+        
+        public static let familyName = NetlinkAttributeType(rawValue: UInt16(CTRL_ATTR_FAMILY_NAME))
     }
 }

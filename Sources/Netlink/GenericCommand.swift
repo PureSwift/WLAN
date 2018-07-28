@@ -5,6 +5,8 @@
 //  Created by Alsey Coleman Miller on 7/7/18.
 //
 
+import CLinuxWLAN
+
 public struct NetlinkGenericCommand: RawRepresentable {
     
     public let rawValue: UInt8
@@ -33,4 +35,11 @@ extension NetlinkGenericCommand: ExpressibleByIntegerLiteral {
         
         self.init(rawValue: value)
     }
+}
+
+// MARK: -
+
+public extension NetlinkGenericCommand {
+    
+    public static let getFamily = NetlinkGenericCommand(rawValue: UInt8(CTRL_CMD_GETFAMILY))
 }
