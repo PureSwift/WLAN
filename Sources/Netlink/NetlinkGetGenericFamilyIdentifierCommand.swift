@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import CLinuxWLAN
 
 #if swift(>=3.2)
 #elseif swift(>=3.0)
@@ -65,5 +66,43 @@ extension NetlinkGetGenericFamilyIdentifierCommand: Codable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         
         try container.encode(name.rawValue, forKey: .name)
+    }
+}
+
+// MARK: - Request
+
+public extension NetlinkSocket {
+    
+    /// Query the family name.
+    func resolve(name: NetlinkGenericFamilyName) throws -> NetlinkGenericFamilyIdentifier {
+        
+        guard netlinkProtocol == .generic
+            else { throw NetlinkSocketError.invalidProtocol }
+        
+        //let command = NetlinkGetGenericFamilyIdentifierCommand(name: name)
+        
+        let attribute = NetlinkAttribute(value: name.rawValue,
+                                         type: NetlinkAttributeType.Generic.familyName)
+        
+        let message = NetlinkGenericMessage(type: NetlinkMessageType(rawValue: UInt16(GENL_ID_CTRL)),
+                                            flags: .request,
+                                            sequence: 0,
+                                            process: 0, // kernel
+                                            command: .getFamily,
+                                            version: 1,
+                                            payload: attribute.paddedData)
+        
+        // send message to kernel
+        try send(message.data)
+        let recievedData = try recieve()
+        
+        // parse response
+        guard let response = NetlinkGenericMessage(data: recievedData),
+            let attributes = try? NetlinkAttribute.from(message: response),
+            let identifierAttribute = attributes.first(where: { $0.type == NetlinkAttributeType.Generic.familyIdentifier }),
+            let identifier = UInt16(attribute: identifierAttribute)
+            else { throw NetlinkSocketError.invalidData(recievedData) }
+        
+        return NetlinkGenericFamilyIdentifier(rawValue: Int32(identifier))
     }
 }
