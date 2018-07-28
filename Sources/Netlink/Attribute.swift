@@ -127,6 +127,19 @@ public extension NetlinkAttribute {
     }
 }
 
+public extension UInt16 {
+    
+    init?(attribute: NetlinkAttribute) {
+        
+        let data = attribute.payload
+        
+        guard data.count == MemoryLayout<UInt16>.size
+            else { return nil }
+        
+        self.init(bytes: (data[0], data[1]))
+    }
+}
+
 public extension UInt32 {
     
     init?(attribute: NetlinkAttribute) {

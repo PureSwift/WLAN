@@ -18,6 +18,8 @@ public final class NetlinkSocket {
     
     // MARK: - Properties
     
+    public let netlinkProtocol: NetlinkSocketProtocol
+    
     internal let internalSocket: CInt
     
     // MARK: - Initialization
@@ -42,6 +44,7 @@ public final class NetlinkSocket {
         
         // initialize socket
         self.internalSocket = fileDescriptor
+        self.netlinkProtocol = netlinkProtocol
         
         // bind socket
         guard withUnsafePointer(to: &address, {
@@ -74,7 +77,51 @@ public final class NetlinkSocket {
         
         return sentBytes
     }
+    
+    public func recieve() throws -> Data {
+        
+        let chunkSize = Int(getpagesize())
+        
+        var readData = Data()
+        var chunk = Data()
+        repeat {
+            chunk = try recieveChunk(size: chunkSize)
+            readData.append(chunk)
+        } while chunk.count == chunkSize // keep reading
+        
+        return readData
+    }
+    
+    internal func recieveChunk(size: Int, flags: CInt = 0) throws -> Data {
+        
+        var data = Data(count: size)
+        
+        let recievedBytes = data.withUnsafeMutableBytes { (dataPointer: UnsafeMutablePointer<UInt8>) in
+            recv(internalSocket, UnsafeMutableRawPointer(dataPointer), size, flags)
+        }
+        
+        guard recievedBytes >= 0
+            else { throw POSIXError.fromErrno! }
+        
+        return Data(data.prefix(recievedBytes))
+    }
 }
+
+// MARK: - Supporting Types
+
+public enum NetlinkSocketError: Error {
+    
+    case invalidProtocol
+    case invalidData(Data)
+}
+
+// MARK: - Linux Support
+
+#if os(Linux)
+    
+internal let SOCK_RAW = CInt(Glibc.SOCK_RAW.rawValue)
+
+#endif
 
 internal let AF_NETLINK: CInt = 16
 

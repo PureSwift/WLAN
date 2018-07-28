@@ -35,6 +35,9 @@ public extension NetlinkSocket {
     /// Query the family name.
     func resolve(name: NetlinkGenericFamilyName) throws -> NetlinkGenericFamilyIdentifier {
         
+        guard netlinkProtocol == .generic
+            else { throw NetlinkSocketError.invalidProtocol }
+        
         let attribute = NetlinkAttribute(value: name.rawValue,
                                          type: NetlinkAttributeType.Generic.familyName)
         
@@ -46,8 +49,17 @@ public extension NetlinkSocket {
                                             version: 1,
                                             payload: attribute.paddedData)
         
+        // send message to kernel
+        try send(message.data)
+        let recievedData = try recieve()
         
+        // parse response
+        guard let response = NetlinkGenericMessage(data: recievedData),
+            let attributes = try? NetlinkAttribute.from(message: response),
+            let identifierAttribute = attributes.first(where: { $0.type == NetlinkAttributeType.Generic.familyIdentifier }),
+                let identifier = UInt16(attribute: identifierAttribute)
+            else { throw NetlinkSocketError.invalidData(recievedData) }
         
-        fatalError()
+        return NetlinkGenericFamilyIdentifier(rawValue: Int32(identifier))
     }
 }

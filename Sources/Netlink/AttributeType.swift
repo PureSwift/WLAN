@@ -23,5 +23,7 @@ public extension NetlinkAttributeType {
     public enum Generic {
         
         public static let familyName = NetlinkAttributeType(rawValue: UInt16(CTRL_ATTR_FAMILY_NAME))
+        
+        public static let familyIdentifier = NetlinkAttributeType(rawValue: UInt16(CTRL_ATTR_FAMILY_ID))
     }
 }
