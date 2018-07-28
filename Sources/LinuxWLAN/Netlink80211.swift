@@ -56,7 +56,7 @@ internal extension Netlink80211 {
             
             // Use this wireless interface for scanning.
             let interfaceIndex = try NetworkInterface.index(for: NetworkInterface(name: interface.name))
-                        
+            
             // Open socket to kernel.
             // Create file descriptor and bind socket.
             let netlinkSocket = try NetlinkSocket(.generic)
@@ -99,7 +99,7 @@ internal extension Netlink80211 {
             
             // Retrieve the kernel's answer
             let messages = try socket.recieve(NetlinkGenericMessage.self)
-            
+                        
             return networks
         }
     }

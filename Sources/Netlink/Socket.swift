@@ -82,14 +82,14 @@ public final class NetlinkSocket {
         
         let data = try recieve()
         
-        if let messages = try? T.from(data: data) {
-            
-            return messages
-            
-        } else if let errorMessages = try? NetlinkErrorMessage.from(data: data),
+        if let errorMessages = try? NetlinkErrorMessage.from(data: data),
             let errorMessage = errorMessages.first {
             
             throw errorMessage.error
+            
+        } else if let messages = try? T.from(data: data) {
+            
+            return messages
             
         } else {
             
