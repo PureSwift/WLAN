@@ -78,6 +78,25 @@ public final class NetlinkSocket {
         return sentBytes
     }
     
+    public func recieve <T: NetlinkMessageProtocol> (_ message: T.Type) throws -> [T] {
+        
+        let data = try recieve()
+        
+        if let messages = try? T.from(data: data) {
+            
+            return messages
+            
+        } else if let errorMessages = try? NetlinkErrorMessage.from(data: data),
+            let errorMessage = errorMessages.first {
+            
+            throw errorMessage.error
+            
+        } else {
+            
+            throw NetlinkSocketError.invalidData(data)
+        }
+    }
+    
     public func recieve() throws -> Data {
         
         let chunkSize = Int(getpagesize())

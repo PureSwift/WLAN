@@ -23,6 +23,38 @@ public protocol NetlinkMessageProtocol {
     var payload: Data { get }
 }
 
+public enum NetlinkMessageDecodingError: Error {
+    
+    case invalidMessage(index: Int, data: Data)
+}
+
+public extension NetlinkMessageProtocol {
+    
+    public static func from(data: Data) throws -> [Self] {
+        
+        var messages = [Self]()
+        
+        var index = 0
+        while index < data.count {
+            
+            let length = Int(UInt32(bytes: (data[index], data[index + 1], data[index + 2], data[index + 3])))
+            
+            let actualLength = length.extendTo4Bytes
+            
+            let messageData = Data(data[index ..< index + actualLength])
+            
+            guard let message = Self.init(data: messageData)
+                else  { throw NetlinkMessageDecodingError.invalidMessage(index: index, data: messageData) }
+            
+            messages.append(message)
+            
+            index += actualLength
+        }
+        
+        return messages
+    }
+}
+
 /// Netlink message payload.
 public struct NetlinkMessage: NetlinkMessageProtocol {
     

@@ -56,17 +56,13 @@ internal extension Netlink80211 {
             
             // Use this wireless interface for scanning.
             let interfaceIndex = try NetworkInterface.index(for: NetworkInterface(name: interface.name))
-            
-            print("interface \(interfaceIndex)")
-            
+                        
             // Open socket to kernel.
             // Create file descriptor and bind socket.
             let netlinkSocket = try NetlinkSocket(.generic)
             
             // Find the "nl80211" driver ID.
             let driver = try netlinkSocket.resolve(name: .nl80211)  // Find the "nl80211" driver ID.
-            
-            print("nl80211 \(driver)")
             
             self.interface = interface
             self.interfaceIndex = interfaceIndex
@@ -101,29 +97,8 @@ internal extension Netlink80211 {
             // Send the message.
             let sentBytes = try socket.send(message.data)
             
-            print("Sent \(sentBytes) bytes to kernel")
-            
-            print(message.data.map { $0 })
-            
             // Retrieve the kernel's answer
-            let responseData = try socket.recieve()
-            
-            print("Recieved \(responseData.count) bytes from the kernel")
-            
-            print(responseData.map { $0 })
-            
-            guard let response = NetlinkGenericMessage(data: responseData)
-                else { throw NetlinkSocketError.invalidData(responseData) }
-            
-            let attributes = try NetlinkAttribute.from(data: response.payload)
-            
-            //attributes.forEach { print("Type \( $0.type):", String(data: $0.payload, encoding: .utf8)) }
-            print(String(data: response.payload, encoding: .utf8) ?? "")
-            
-            if let bssid = attributes.first(where: { $0.type == NetlinkAttributeType.NL80211.BSS.bssid }) {
-                
-                print("BSSID:",  bssid.payload.map { $0 })
-            }
+            let messages = try socket.recieve(NetlinkGenericMessage.self)
             
             return networks
         }
