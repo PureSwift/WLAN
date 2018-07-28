@@ -47,5 +47,8 @@ let package = Package(
                 nativeDependency
             ])
     ],
+    dependencies: [
+        .Package(url: "https://github.com/PureSwift/Codable.git", majorVersion: 1)
+    ],
     exclude: ["Xcode", "Carthage"]
 )

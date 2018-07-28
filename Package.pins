@@ -1,0 +1,12 @@
+{
+  "autoPin": true,
+  "pins": [
+    {
+      "package": "Codable",
+      "reason": null,
+      "repositoryURL": "https://github.com/PureSwift/Codable.git",
+      "version": "1.0.4"
+    }
+  ],
+  "version": 1
+}

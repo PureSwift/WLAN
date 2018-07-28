@@ -145,4 +145,4 @@ internal let SOCK_RAW = CInt(Glibc.SOCK_RAW.rawValue)
 
 internal let AF_NETLINK: CInt = 16
 
-internal let PF_NETLINK: CInt = 16
+internal let PF_NETLINK = AF_NETLINK

@@ -7,6 +7,14 @@
 
 import Foundation
 
+#if swift(>=3.2)
+internal typealias DecoderProtocol = Swift.Decoder
+#elseif swift(>=3.0)
+import Codable
+internal typealias DecoderProtocol = Decoder
+#endif
+
+
 public struct NetlinkAttributeDecoder {
     
     public typealias Log = (String) -> ()
@@ -46,7 +54,7 @@ public struct NetlinkAttributeDecoder {
 
 internal extension NetlinkAttributeDecoder {
     
-    final class Decoder: Swift.Decoder {
+    final class Decoder: DecoderProtocol {
         
         /// The path of coding keys taken to get to this point in decoding.
         fileprivate(set) var codingPath: [CodingKey]
@@ -74,7 +82,7 @@ internal extension NetlinkAttributeDecoder {
         
         // MARK: - Methods
         
-        func container<Key: CodingKey>(keyedBy type: Key.Type) throws -> Swift.KeyedDecodingContainer<Key> {
+        func container<Key: CodingKey>(keyedBy type: Key.Type) throws -> KeyedDecodingContainer<Key> {
             
             log?("Requested container keyed by \(type) for path \"\(codingPathString)\"")
             
@@ -90,7 +98,7 @@ internal extension NetlinkAttributeDecoder {
             return KeyedDecodingContainer(keyedContainer)
         }
         
-        func unkeyedContainer() throws -> Swift.UnkeyedDecodingContainer {
+        func unkeyedContainer() throws -> UnkeyedDecodingContainer {
             
             log?("Requested unkeyed container for path \"\(codingPathString)\"")
             
@@ -107,7 +115,7 @@ internal extension NetlinkAttributeDecoder {
             */
         }
         
-        func singleValueContainer() throws -> Swift.SingleValueDecodingContainer {
+        func singleValueContainer() throws -> SingleValueDecodingContainer {
             
             log?("Requested single value container for path \"\(codingPathString)\"")
             
@@ -261,7 +269,7 @@ fileprivate extension NetlinkAttributeDecoder.Stack {
 
 internal extension NetlinkAttributeDecoder {
     
-    struct AttributesKeyedDecodingContainer <K : Swift.CodingKey >: Swift.KeyedDecodingContainerProtocol {
+    struct AttributesKeyedDecodingContainer <K : CodingKey >: KeyedDecodingContainerProtocol {
         
         typealias Key = K
         
@@ -417,12 +425,12 @@ internal extension NetlinkAttributeDecoder {
             fatalError()
         }
         
-        func superDecoder() throws -> Swift.Decoder {
+        func superDecoder() throws -> DecoderProtocol {
             
             fatalError()
         }
         
-        func superDecoder(forKey key: Key) throws -> Swift.Decoder {
+        func superDecoder(forKey key: Key) throws -> DecoderProtocol {
             
             fatalError()
         }
@@ -440,9 +448,11 @@ internal extension NetlinkAttributeDecoder {
                 throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: self.decoder.codingPath, debugDescription: "Expected \(type) value but found null instead."))
             }
             
-            guard let value = T.init(attributeData: attribute.data) else {
+            let attributeData = attribute.payload
+            
+            guard let value = T.init(attributeData: attributeData) else {
                 
-                throw DecodingError.dataCorruptedError(forKey: key, in: self, debugDescription: "Could not parse \(type) from \(attribute.data)")
+                throw DecodingError.dataCorruptedError(forKey: key, in: self, debugDescription: "Could not parse \(type) from \(attributeData)")
             }
             
             return value

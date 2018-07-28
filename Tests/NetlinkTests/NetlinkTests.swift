@@ -62,7 +62,8 @@ final class NetlinkTests: XCTestCase {
         
         do {
             
-            let decoder = NetlinkAttributeDecoder()
+            var decoder = NetlinkAttributeDecoder()
+            decoder.log = { print("Decoder:", $0) }
             let command = try decoder.decode(NL80211GetScanResultsCommand.self, from: message)
             
             XCTAssertEqual(command.interface, 3)
@@ -79,6 +80,7 @@ final class NetlinkTests: XCTestCase {
             else { XCTFail(); return }
         
         XCTAssertEqual(UInt32(attribute: attributes[0]), 3)
+        XCTAssertEqual(attributes[0].payload, Data([0x03, 0x00, 0x00, 0x00]))
         XCTAssertEqual(attributes[0].type.rawValue, NetlinkAttributeType.NL80211.interfaceIndex.rawValue)
         
         // libnl message
