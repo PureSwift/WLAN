@@ -11,8 +11,6 @@ import Glibc
 import Darwin.C
 #endif
 
-#if os(Linux) || XcodeLinux
-
 import Foundation
 import WLAN
 import Netlink
@@ -52,7 +50,7 @@ internal extension Netlink80211 {
         let socket: NetlinkSocket
         
         // "nl80211" driver ID
-        let driverID: NetlinkGenericFamilyIdentifier
+        //let driverID: NetlinkGenericFamilyIdentifier
         
         init(interface: WLANInterface) throws {
             
@@ -62,20 +60,18 @@ internal extension Netlink80211 {
             print("interface \(interfaceIndex)")
             
             // Open socket to kernel.
-            let netlinkSocket = NetlinkSocket()
-            
             // Create file descriptor and bind socket.
-            try netlinkSocket.connect(using: .generic)
+            let netlinkSocket = try NetlinkSocket(.generic)
             
             // Find the "nl80211" driver ID.
-            let driverID = try netlinkSocket.genericView.resolve(name: .nl80211)  // Find the "nl80211" driver ID.
+            //let driverID = try netlinkSocket.genericView.resolve(name: .nl80211)  // Find the "nl80211" driver ID.
             
-            print("nl80211 \(driverID)")
+            //print("nl80211 \(driverID)")
             
             self.interface = interface
             self.interfaceIndex = interfaceIndex
             self.socket = netlinkSocket
-            self.driverID = driverID
+            //self.driverID = driverID
         }
         
         /// Issue NL80211_CMD_TRIGGER_SCAN to the kernel and wait for it to finish.
@@ -88,7 +84,7 @@ internal extension Netlink80211 {
         func scanResults() throws -> [WLANNetwork] {
             
             var networks = [WLANNetwork]()
-            
+            /*
             // Create message
             let message = NetlinkMessage()
             
@@ -121,10 +117,9 @@ internal extension Netlink80211 {
             
             // Retrieve the kernel's answer
             try socket.recieve()
+            */
             
             return networks
         }
     }
 }
-
-#endif
