@@ -7,7 +7,6 @@
 
 import Foundation
 
-
 public protocol NetlinkAttributeCodingKey: CodingKey {
     
     init?(attribute: NetlinkAttributeType)
@@ -29,6 +28,19 @@ public extension NetlinkAttributeCodingKey {
     var intValue: Int? {
         
         return Int(attribute.rawValue)
+    }
+}
+
+internal extension NetlinkAttributeType {
+    
+    init? <K: CodingKey> (codingKey: K) {
+        
+        guard let intValue = codingKey.intValue,
+            intValue <= Int(UInt16.max),
+            intValue >= Int(UInt16.min)
+            else { return nil }
+        
+        self.init(rawValue: UInt16(intValue))
     }
 }
 

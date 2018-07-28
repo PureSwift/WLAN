@@ -60,6 +60,16 @@ final class NetlinkTests: XCTestCase {
         XCTAssertEqual(message.flags, [.dump, .request])
         XCTAssertEqual(message.sequence, 0)
         
+        do {
+            
+            let decoder = NetlinkAttributeDecoder()
+            let command = try decoder.decode(NL80211GetScanResultsCommand.self, from: message)
+            
+            XCTAssertEqual(command.interface, 3)
+        }
+        
+        catch { XCTFail("Could not decode: \(error)"); return }
+        
         //dump(message)
         
         var attributes = [NetlinkAttribute]()

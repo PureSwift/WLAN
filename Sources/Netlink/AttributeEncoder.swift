@@ -6,3 +6,13 @@
 //
 
 import Foundation
+
+public struct NetlinkAttributeEncoder {
+    
+    
+}
+
+internal extension NetlinkAttributeEncoder {
+    
+    
+}
