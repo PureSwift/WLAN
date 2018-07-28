@@ -7,7 +7,32 @@
 
 import Foundation
 
-public struct NetlinkGetGenericFamilyIdentifier {
+
+public protocol NetlinkAttributeCodingKey: CodingKey {
+    
+    init?(attribute: NetlinkAttributeType)
+    
+    var attribute: NetlinkAttributeType { get }
+}
+
+public extension NetlinkAttributeCodingKey {
+    
+    init?(intValue: Int) {
+        
+        guard intValue <= Int(UInt16.max),
+            intValue >= Int(UInt16.min)
+            else { return nil }
+        
+        self.init(attribute: NetlinkAttributeType(rawValue: UInt16(intValue)))
+    }
+    
+    var intValue: Int? {
+        
+        return Int(attribute.rawValue)
+    }
+}
+
+public struct NetlinkGetGenericFamilyIdentifierCommand {
     
     public static let command: NetlinkGenericCommand = .getFamily
     
@@ -21,7 +46,7 @@ public struct NetlinkGetGenericFamilyIdentifier {
     }
 }
 
-extension NetlinkGetGenericFamilyIdentifier: Codable {
+extension NetlinkGetGenericFamilyIdentifierCommand: Codable {
     
     internal enum CodingKeys: String, NetlinkAttributeCodingKey {
         
@@ -63,33 +88,58 @@ extension NetlinkGetGenericFamilyIdentifier: Codable {
     }
 }
 
-public struct NL80211GetScanResults {
+public struct NL80211GetScanResultsCommand {
     
     public static let command = NetlinkGenericCommand.NL80211.getScanResults
     
+    public static let version: NetlinkGenericVersion = 0
     
+    public var interface: UInt32
+    
+    public init(interface: UInt32) {
+        
+        self.interface = interface
+    }
 }
 
-public protocol NetlinkAttributeCodingKey: CodingKey {
+extension NL80211GetScanResultsCommand: Codable {
     
-    init?(attribute: NetlinkAttributeType)
-    
-    var attribute: NetlinkAttributeType { get }
-}
-
-public extension NetlinkAttributeCodingKey {
-    
-    init?(intValue: Int) {
+    internal enum CodingKeys: String, NetlinkAttributeCodingKey {
         
-        guard intValue <= Int(UInt16.max),
-            intValue >= Int(UInt16.min)
-            else { return nil }
+        case interfaceIndex
         
-        self.init(attribute: NetlinkAttributeType(rawValue: UInt16(intValue)))
+        init?(attribute: NetlinkAttributeType) {
+            
+            switch attribute {
+            case NetlinkAttributeType.NL80211.interfaceIndex:
+                self = .interfaceIndex
+            default:
+                return nil
+            }
+        }
+        
+        var attribute: NetlinkAttributeType {
+            
+            switch self {
+            case .interfaceIndex:
+                return NetlinkAttributeType.NL80211.interfaceIndex
+            }
+        }
     }
     
-    var intValue: Int? {
+    public init(from decoder: Decoder) throws {
         
-        return Int(attribute.rawValue)
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        let interfaceIndex = try container.decode(UInt32.self, forKey: .interfaceIndex)
+        
+        self.init(interface: interfaceIndex)
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+        
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        
+        try container.encode(interface, forKey: .interfaceIndex)
     }
 }
