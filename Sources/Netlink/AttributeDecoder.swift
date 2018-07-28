@@ -62,7 +62,7 @@ internal extension NetlinkAttributeDecoder {
         /// Any contextual information set by the user for decoding.
         let userInfo: [CodingUserInfoKey : Any]
         
-        private var stack: Stack
+        fileprivate var stack: Stack
         
         /// Logger
         let log: Log?
@@ -119,6 +119,15 @@ internal extension NetlinkAttributeDecoder {
             
             log?("Requested single value container for path \"\(codingPathString)\"")
             
+            let container = self.stack.top
+            
+            guard case let .attribute(attribute) = container else {
+                
+                throw DecodingError.typeMismatch(SingleValueDecodingContainer.self, DecodingError.Context(codingPath: self.codingPath, debugDescription: "Cannot get single value decoding container, invalid top container \(container)."))
+            }
+            
+            return AttributeSingleValueDecodingContainer(referencing: self, wrapping: attribute)
+            
             /*
             let container = self.stack.top
             
@@ -140,8 +149,6 @@ internal extension NetlinkAttributeDecoder {
                 throw DecodingError.typeMismatch(SingleValueDecodingContainer.self, DecodingError.Context(codingPath: self.codingPath, debugDescription: "Cannot get single value decoding container, invalid top container \(container)."))
             }
             */
-            
-            fatalError()
         }
     }
 }
@@ -157,10 +164,39 @@ fileprivate extension NetlinkAttributeDecoder.Decoder {
         return codingPath.reduce("", { $0 + "\($0.isEmpty ? "" : ".")" + $1.stringValue })
     }
     
-    /// Attempt to decode native value to expected type.
-    func unboxDecodable <T: Decodable> (_ value: Any, as type: T.Type) throws -> T {
+    func unbox <T: NetlinkAttributeDecodable> (_ attributeData: Data, as type: T.Type) throws -> T {
         
-        fatalError()
+        guard let value = T.init(attributeData: attributeData) else {
+            
+            throw DecodingError.typeMismatch(type, DecodingError.Context(codingPath: self.codingPath, debugDescription: "Could not parse \(type) from \(attributeData)"))
+        }
+        
+        return value
+    }
+    
+    /// Attempt to decode native value to expected type.
+    func unboxDecodable <T: Decodable> (_ attribute: NetlinkAttribute, as type: T.Type) throws -> T {
+        
+        // push and decode container
+        let container: NetlinkAttributeDecoder.Stack.Container
+        
+        if attribute.type.rawValue == 0 { // nested ?
+            
+            fatalError("Nested attribute")
+            
+        } else {
+            
+            /// single value container for attributes
+            container = .attribute(attribute)
+        }
+        
+        // push container to stack and decode using Decodable implementation
+        stack.push(container)
+        let decoded = try T(from: self)
+        stack.pop()
+        
+        return decoded
+        
         /*
         if let string = value as? String, type is URL.Type {
             
@@ -261,6 +297,7 @@ fileprivate extension NetlinkAttributeDecoder.Stack {
     enum Container {
         
         case attributes([NetlinkAttribute])
+        case attribute(NetlinkAttribute)
     }
 }
 
@@ -398,19 +435,17 @@ internal extension NetlinkAttributeDecoder {
             return try _decode(type, forKey: key)
         }
         
-        func decode<T: Decodable>(_ type: T.Type, forKey key: Key) throws -> T {
+        func decode <T: Decodable> (_ type: T.Type, forKey key: Key) throws -> T {
             
             self.decoder.codingPath.append(key)
             defer { self.decoder.codingPath.removeLast() }
             
-            guard let entry = try self.value(for: key) else {
+            guard let attribute = try self.value(for: key) else {
                 
                 throw DecodingError.valueNotFound(type, DecodingError.Context(codingPath: self.decoder.codingPath, debugDescription: "Expected \(type) value but found null instead."))
             }
             
-            // override for CoreData supported native types that also are Decodable
-            // and don't use Decodable implementation
-            let value = try self.decoder.unboxDecodable(entry, as: type)
+            let value = try self.decoder.unboxDecodable(attribute, as: type)
             
             return value
         }
@@ -450,10 +485,7 @@ internal extension NetlinkAttributeDecoder {
             
             let attributeData = attribute.payload
             
-            guard let value = T.init(attributeData: attributeData) else {
-                
-                throw DecodingError.dataCorruptedError(forKey: key, in: self, debugDescription: "Could not parse \(type) from \(attributeData)")
-            }
+            let value = try decoder.unbox(attributeData, as: type)
             
             return value
         }
@@ -470,6 +502,128 @@ internal extension NetlinkAttributeDecoder {
         }
     }
 }
+
+
+// MARK: - SingleValueDecodingContainer
+
+fileprivate extension NetlinkAttributeDecoder {
+    
+    fileprivate struct AttributeSingleValueDecodingContainer: SingleValueDecodingContainer {
+        
+        // MARK: Properties
+        
+        /// A reference to the decoder we're reading from.
+        private let decoder: Decoder
+        
+        /// A reference to the container we're reading from.
+        private let container: NetlinkAttribute
+        
+        /// The path of coding keys taken to get to this point in decoding.
+        public let codingPath: [CodingKey]
+        
+        var attributeData: Data {
+            return container.payload
+        }
+        
+        // MARK: Initialization
+        
+        /// Initializes `self` by referencing the given decoder and container.
+        fileprivate init(referencing decoder: Decoder, wrapping container: NetlinkAttribute) {
+            
+            self.decoder = decoder
+            self.container = container
+            self.codingPath = decoder.codingPath
+        }
+        
+        // MARK: SingleValueDecodingContainer
+        
+        func decodeNil() -> Bool {
+            
+            return attributeData.isEmpty
+        }
+        
+        func decode(_ type: Bool.Type) throws -> Bool {
+            
+            return try self.decoder.unbox(attributeData, as: type)
+        }
+        
+        func decode(_ type: Int.Type) throws -> Int {
+            
+            let value = try self.decoder.unbox(attributeData, as: Int32.self)
+            
+            return Int(value)
+        }
+        
+        func decode(_ type: Int8.Type) throws -> Int8 {
+            
+            return try self.decoder.unbox(attributeData, as: type)
+        }
+        
+        func decode(_ type: Int16.Type) throws -> Int16 {
+            
+            return try self.decoder.unbox(attributeData, as: type)
+        }
+        
+        func decode(_ type: Int32.Type) throws -> Int32 {
+            
+            return try self.decoder.unbox(attributeData, as: type)
+        }
+        
+        func decode(_ type: Int64.Type) throws -> Int64 {
+            
+            return try self.decoder.unbox(attributeData, as: type)
+        }
+        
+        func decode(_ type: UInt.Type) throws -> UInt {
+            
+            let value = try self.decoder.unbox(attributeData, as: UInt32.self)
+            
+            return UInt(value)
+        }
+        
+        func decode(_ type: UInt8.Type) throws -> UInt8 {
+            
+            return try self.decoder.unbox(attributeData, as: type)
+        }
+        
+        func decode(_ type: UInt16.Type) throws -> UInt16 {
+            
+            return try self.decoder.unbox(attributeData, as: type)
+        }
+        
+        func decode(_ type: UInt32.Type) throws -> UInt32 {
+            
+            return try self.decoder.unbox(attributeData, as: type)
+        }
+        
+        func decode(_ type: UInt64.Type) throws -> UInt64 {
+            
+            return try self.decoder.unbox(attributeData, as: type)
+        }
+        
+        func decode(_ type: Float.Type) throws -> Float {
+            
+            fatalError()
+        }
+        
+        func decode(_ type: Double.Type) throws -> Double {
+            
+            fatalError()
+        }
+        
+        func decode(_ type: String.Type) throws -> String {
+            
+            return try self.decoder.unbox(attributeData, as: type)
+        }
+        
+        func decode <T : Decodable> (_ type: T.Type) throws -> T {
+            
+            return try self.decoder.unboxDecodable(container, as: type)
+        }
+    }
+}
+
+// MARK: - Decodable Types
 
 /// Decoding from raw NetLink Attribute data.
 public protocol NetlinkAttributeDecodable {

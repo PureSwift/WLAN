@@ -55,9 +55,9 @@ extension NetlinkGetGenericFamilyIdentifierCommand: Codable {
         
         let container = try decoder.container(keyedBy: CodingKeys.self)
         
-        let name = try container.decode(String.self, forKey: .name)
+        let name = try container.decode(NetlinkGenericFamilyName.self, forKey: .name)
         
-        self.init(name: NetlinkGenericFamilyName(rawValue: name))
+        self.init(name: name)
     }
     
     public func encode(to encoder: Encoder) throws {
