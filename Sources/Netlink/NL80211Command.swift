@@ -11,10 +11,7 @@ import Glibc
 import Darwin.C
 #endif
 
-#if os(Linux) || XcodeLinux
-
 import Foundation
-import CNetlink
 import CLinuxWLAN
 
 public extension NetlinkGenericCommand {
@@ -33,5 +30,3 @@ fileprivate extension NetlinkGenericCommand {
         self.init(rawValue: UInt8(nl80211Command.rawValue))
     }
 }
-
-#endif

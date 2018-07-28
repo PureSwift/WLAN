@@ -11,188 +11,159 @@ import Glibc
 import Darwin.C
 #endif
 
-#if os(Linux) || XcodeLinux
-
 import Foundation
-import CNetlink
 import CLinuxWLAN
 
+public protocol NetlinkMessageProtocol {
+    
+    init?(data: Data)
+    
+    var data: Data { get }
+    
+    var payload: Data { get }
+}
+
+public enum NetlinkMessageDecodingError: Error {
+    
+    case invalidMessage(index: Int, data: Data)
+}
+
+public extension NetlinkMessageProtocol {
+    
+    public static func from(data: Data) throws -> [Self] {
+        
+        var messages = [Self]()
+        
+        var index = 0
+        while index < data.count {
+            
+            let length = Int(UInt32(bytes: (data[index], data[index + 1], data[index + 2], data[index + 3])))
+            
+            let actualLength = length.extendTo4Bytes
+            
+            let messageData = Data(data[index ..< index + actualLength])
+            
+            guard let message = Self.init(data: messageData)
+                else  { throw NetlinkMessageDecodingError.invalidMessage(index: index, data: messageData) }
+            
+            messages.append(message)
+            
+            index += actualLength
+        }
+        
+        return messages
+    }
+}
+
 /// Netlink message payload.
-public final class NetlinkMessage {
+public struct NetlinkMessage: NetlinkMessageProtocol {
+    
+    internal static let minimumLength = NetlinkMessageHeader.length
     
     // MARK: - Properties
     
-    @_versioned
-    internal let managedPointer: ManagedPointer<UnmanagedPointer>
+    /**
+     Length: 32 bits
+     
+     The length of the message in bytes, including the header.
+     */
+    public var length: UInt32 {
+        
+        return UInt32(NetlinkMessageHeader.length + payload.count)
+    }
+    
+    /**
+     Type: 16 bits
+     
+     This field describes the message content.
+     It can be one of the standard message types:
+     * NLMSG_NOOP  Message is ignored.
+     * NLMSG_ERROR The message signals an error and the payload
+     contains a nlmsgerr structure.  This can be looked
+     at as a NACK and typically it is from FEC to CPC.
+     * NLMSG_DONE  Message terminates a multipart message.
+     */
+    
+    public var type: NetlinkMessageType
+    
+    /**
+     Flags: 16 bits
+     */
+    public var flags: NetlinkMessageFlag
+    
+    /**
+     Sequence Number: 32 bits
+     
+     The sequence number of the message.
+     */
+    public var sequence: UInt32
+    
+    /**
+     Process ID (PID): 32 bits
+     
+     The PID of the process sending the message. The PID is used by the
+     kernel to multiplex to the correct sockets. A PID of zero is used
+     when sending messages to user space from the kernel.
+     */
+    public var process: pid_t //UInt32
+    
+    /// Message payload.
+    public var payload: Data
     
     // MARK: - Initialization
     
-    internal init(_ managedPointer: ManagedPointer<UnmanagedPointer>) {
+    public init(type: NetlinkMessageType,
+                flags: NetlinkMessageFlag = 0,
+                sequence: UInt32 = 0,
+                process: pid_t = getpid(),
+                payload: Data = Data()) {
         
-        self.managedPointer = managedPointer
+        self.type = type
+        self.flags = flags
+        self.sequence = sequence
+        self.process = process
+        self.payload = payload
     }
+}
+
+public extension NetlinkMessage {
     
-    /// Allocate a new netlink message with the default maximum payload size.
-    public convenience init() {
+    public init?(data: Data) {
         
-        guard let rawPointer = nlmsg_alloc()
-            else { fatalError("Could not initialize") }
+        guard let header = NetlinkMessageHeader(data: Data(data.prefix(NetlinkMessageHeader.length)))
+            else { return nil }
         
-        self.init(ManagedPointer(UnmanagedPointer(rawPointer)))
-    }
-    
-    /// Allocate a new netlink message with maximum payload size specified.
-    public convenience init(size: Int) {
+        self.type = header.type
+        self.flags = header.flags
+        self.sequence = header.sequence
+        self.process = header.process
         
-        guard let rawPointer = nlmsg_alloc_size(size)
-            else { fatalError("Could not initialize") }
-        
-        self.init(ManagedPointer(UnmanagedPointer(rawPointer)))
-    }
-    
-    /// Allocate a new netlink message.
-    ///
-    /// - Parameter type: Netlink message type
-    /// - Parameter flags: Netlink message flags.
-    public convenience init(type: NetlinkMessageType, flags: NetlinkMessageFlag = 0) {
-        
-        guard let rawPointer = nlmsg_alloc_simple(Int32(type.rawValue), Int32(flags.rawValue))
-            else { fatalError("Could not initialize") }
-        
-        self.init(ManagedPointer(UnmanagedPointer(rawPointer)))
-    }
-    
-    // MARK: - Methods
-    
-    /// Calculates size of netlink message based on payload length.
-    ///
-    /// - Returns: Size of netlink message without padding.
-    public static func size(for payloadLength: Int) -> Int {
-        
-        return Int(nlmsg_size(Int32(Int(payloadLength))))
-    }
-    
-    /// Calculates size of netlink message including padding based on payload length.
-    ///
-    /// - Returns: Size of netlink message including padding.
-    public static func totalSize(for payloadLength: Int) -> Int {
-        
-        return Int(nlmsg_total_size(Int32(Int(payloadLength))))
-    }
-    
-    /// Size of padding that needs to be added at end of message.
-    ///
-    /// Calculates the number of bytes of padding which is required to be added
-    /// to the end of the message to ensure that the next netlink message header
-    /// begins properly aligned to `NLMSG_ALIGNTO`.
-    ///
-    /// - Parameter payload: Length of payload.
-    ///
-    /// - Returns: Number of bytes of padding needed.
-    public static func padding(for payload: Int) -> Int {
-        
-        return Int(nlmsg_padlen(CInt(payload)))
-    }
-    
-    /// Expand maximum payload size of a netlink message.
-    ///
-    /// Reallocates the payload section of a netlink message and increases the maximum payload size of the message.
-    ///
-    /// - Note: Any pointers pointing to old payload block will be stale and need to be refetched.
-    /// Therfore, do not expand while constructing nested attributes or while reserved data blocks are held.
-    public func expand(size: Int) throws {
-        
-        try nlmsg_expand(rawPointer, size).nlThrow()
-    }
-    
-    /// Returns the actual netlink message casted to the type of the netlink message header.
-    internal var dataPointer: UnsafeMutableRawPointer? {
-        
-        return withUnsafePointer { nlmsg_data($0) }
-    }
-    
-    internal var dataLength: Int32 {
-        
-        return withUnsafePointer { nlmsg_datalen($0) }
-    }
-    
-    public func withPayload <Result> (_ body: (Data) throws -> Result) rethrows -> Result {
-        
-        let data = Data(bytesNoCopy: dataPointer!,
-                        count: Int(dataLength),
-                        deallocator: Data.Deallocator.none)
-        
-        return try body(data)
-    }
-    
-    /// Message payload.
-    public var payload: Data {
-        
-        return withPayload { Data($0) }
+        if data.count > NetlinkMessageHeader.length {
+            
+            let payloadLength = Int(header.length) - NetlinkMessageHeader.length
+            
+            self.payload = Data(data.suffix(from: NetlinkMessageHeader.length).prefix(payloadLength))
+            
+        } else {
+            
+            self.payload = Data()
+        }
     }
     
     public var data: Data {
         
-        let length = NetlinkMessage.totalSize(for: Int(dataLength))
-        
-        return withUnsafePointer { Data(bytes: UnsafeRawPointer($0), count: length) }
-    }
-    
-    /// Returns the actual netlink message casted to the type of the netlink message header.
-    ///
-    /// - Note: The pointer is only guarenteed to be valid for the lifetime of the closure.
-    @inline(__always)
-    internal func withUnsafePointer <Result> (_ body: (UnsafePointer<nlmsghdr>) throws -> Result) rethrows -> Result {
-        
-        // Return actual netlink message.
-        guard let headerPointer = nlmsg_hdr(rawPointer)
-            else { fatalError("Invalid pointer") }
-        
-        return try body(headerPointer)
-    }
-    
-    // MARK: - Attributes
-    
-    /// Add 32 bit integer attribute to netlink message.
-    ///
-    /// - Parameter value: Numeric value to store as payload.
-    /// - Parameter attribute: Attribute type.
-    public func setValue(_ value: UInt32, for attribute: NetlinkAttribute) throws {
-        
-        try nla_put_u32(rawPointer, attribute.rawValue, value).nlThrow()
+        return header.data + payload
     }
 }
 
-// MARK: - ManagedHandle
-
-extension NetlinkMessage: ManagedHandle {
+public extension NetlinkMessage {
     
-    typealias RawPointer = NetlinkMessage.UnmanagedPointer.RawPointer
-}
-
-// MARK: - UnmanagedPointer
-
-extension NetlinkMessage {
-    
-    struct UnmanagedPointer: Netlink.UnmanagedPointer {
+    var header: NetlinkMessageHeader {
         
-        let rawPointer: OpaquePointer
-        
-        @inline(__always)
-        init(_ rawPointer: OpaquePointer) {
-            self.rawPointer = rawPointer
-        }
-        
-        @inline(__always)
-        func retain() {
-            nlmsg_get(rawPointer)
-        }
-        
-        @inline(__always)
-        func release() {
-            nlmsg_free(rawPointer)
-        }
+        return NetlinkMessageHeader(length: length,
+                                    type: type,
+                                    flags: flags,
+                                    sequence: sequence,
+                                    process: process)
     }
 }
-
-#endif

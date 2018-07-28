@@ -30,11 +30,23 @@ public struct NetlinkMessageType: RawRepresentable {
     
     public let rawValue: UInt16
     
-    public init(rawValue: UInt16) {
+    public init(rawValue: UInt16 = 0) {
         
         self.rawValue = rawValue
     }
 }
+
+// MARK: - Equatable
+
+extension NetlinkMessageType: Equatable {
+    
+    public static func == (lhs: NetlinkMessageType, rhs: NetlinkMessageType) -> Bool {
+        
+        return lhs.rawValue == rhs.rawValue
+    }
+}
+
+// MARK: - Types
 
 public extension NetlinkMessageType {
     

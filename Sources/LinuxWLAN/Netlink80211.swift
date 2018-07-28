@@ -11,12 +11,9 @@ import Glibc
 import Darwin.C
 #endif
 
-#if os(Linux) || XcodeLinux
-
 import Foundation
 import WLAN
 import Netlink
-import CNetlink
 import CLinuxWLAN
 
 public final class Netlink80211 {
@@ -53,30 +50,24 @@ internal extension Netlink80211 {
         let socket: NetlinkSocket
         
         // "nl80211" driver ID
-        let driverID: NetlinkGenericFamilyIdentifier
+        let driver: NetlinkGenericFamilyIdentifier
         
         init(interface: WLANInterface) throws {
             
             // Use this wireless interface for scanning.
             let interfaceIndex = try NetworkInterface.index(for: NetworkInterface(name: interface.name))
             
-            print("interface \(interfaceIndex)")
-            
             // Open socket to kernel.
-            let netlinkSocket = NetlinkSocket()
-            
             // Create file descriptor and bind socket.
-            try netlinkSocket.connect(using: .generic)
+            let netlinkSocket = try NetlinkSocket(.generic)
             
             // Find the "nl80211" driver ID.
-            let driverID = try netlinkSocket.genericView.resolve(name: .nl80211)  // Find the "nl80211" driver ID.
-            
-            print("nl80211 \(driverID)")
+            let driver = try netlinkSocket.resolve(name: .nl80211)  // Find the "nl80211" driver ID.
             
             self.interface = interface
             self.interfaceIndex = interfaceIndex
             self.socket = netlinkSocket
-            self.driverID = driverID
+            self.driver = driver
         }
         
         /// Issue NL80211_CMD_TRIGGER_SCAN to the kernel and wait for it to finish.
@@ -90,42 +81,26 @@ internal extension Netlink80211 {
             
             var networks = [WLANNetwork]()
             
-            // Create message
-            let message = NetlinkMessage()
+            // Add message attribute, specify which interface to use.
+            let attribute = NetlinkAttribute(value: UInt32(interfaceIndex),
+                                             type: NetlinkAttributeType.NL80211.interfaceIndex)
             
             // Setup which command to run.
-            message.genericView.put(port: 0,
-                                    sequence: 0,
-                                    family: driverID,
-                                    headerLength: 0,
-                                    flags: NetlinkMessageFlag.Get.dump,
-                                    command: NetlinkGenericCommand.NL80211.getScanResults,
-                                    version: 0)
-            
-            // Add message attribute, specify which interface to use.
-            try message.setValue(UInt32(interfaceIndex), for: NetlinkAttribute.NL80211.interfaceIndex)
-            
-            // Add the callback.
-            try socket.modifyCallback(type: NL_CB_VALID, kind: NL_CB_CUSTOM) {
-                
-                print("Recieved message")
-                
-                return NL_SKIP
-            }
+            let message = NetlinkGenericMessage(type: NetlinkMessageType(rawValue: UInt16(driver.rawValue)),
+                                                flags: [.request, .dump],
+                                                sequence: 0,
+                                                process: getpid(),
+                                                command: NetlinkGenericCommand.NL80211.getScanResults,
+                                                version: 0,
+                                                payload: attribute.paddedData)
             
             // Send the message.
-            let sentBytes = try socket.send(message: message)
-            
-            print("Sent \(sentBytes) bytes to kernel")
-            
-            print(message.data.map { $0 })
+            let sentBytes = try socket.send(message.data)
             
             // Retrieve the kernel's answer
-            try socket.recieve()
-            
+            let messages = try socket.recieve(NetlinkGenericMessage.self)
+                        
             return networks
         }
     }
 }
-
-#endif

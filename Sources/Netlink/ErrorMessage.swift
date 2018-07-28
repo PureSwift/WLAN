@@ -1,23 +1,16 @@
 //
-//  GenericMessage.swift
+//  ErrorMessage.swift
 //  Netlink
 //
-//  Created by Alsey Coleman Miller on 7/7/18.
+//  Created by Alsey Coleman Miller on 7/8/18.
 //
 
-#if os(Linux)
-import Glibc
-#elseif os(macOS) || os(iOS)
-import Darwin.C
-#endif
-
 import Foundation
-import CLinuxWLAN
 
 /// Netlink generic message payload.
-public struct NetlinkGenericMessage: NetlinkMessageProtocol {
+public struct NetlinkErrorMessage: Error, NetlinkMessageProtocol {
     
-    internal static let headerLength = NetlinkMessageHeader.length + 4
+    internal static let length = NetlinkMessageHeader.length + MemoryLayout<Int32>.size + NetlinkMessageHeader.length
     
     // MARK: - Properties
     
@@ -28,7 +21,7 @@ public struct NetlinkGenericMessage: NetlinkMessageProtocol {
      */
     public var length: UInt32 {
         
-        return UInt32(NetlinkGenericMessage.headerLength + payload.count)
+        return UInt32(NetlinkErrorMessage.length + payload.count)
     }
     
     /**
@@ -43,7 +36,7 @@ public struct NetlinkGenericMessage: NetlinkMessageProtocol {
      * NLMSG_DONE  Message terminates a multipart message.
      */
     
-    public var type: NetlinkMessageType
+    public var type: NetlinkMessageType { return .error }
     
     /**
      Flags: 16 bits
@@ -66,63 +59,73 @@ public struct NetlinkGenericMessage: NetlinkMessageProtocol {
      */
     public var process: pid_t
     
-    public var command: NetlinkGenericCommand
-    
-    public var version: NetlinkGenericVersion
-    
-    internal var unused: UInt16 = 0 // padding
-    
     /// Message payload.
+    public var error: POSIXError
+    
+    /// Original request
+    public var request: NetlinkMessageHeader
+    
+    /// Original payload
     public var payload: Data
     
     // MARK: - Initialization
     
-    public init(type: NetlinkMessageType = NetlinkMessageType(),
-                flags: NetlinkMessageFlag = 0,
+    public init(flags: NetlinkMessageFlag = 0,
                 sequence: UInt32 = 0,
-                process: pid_t = getpid(),
-                command: NetlinkGenericCommand = 0,
-                version: NetlinkGenericVersion = 0,
+                process: pid_t = 0,
+                error: POSIXError,
+                request: NetlinkMessageHeader,
                 payload: Data = Data()) {
         
-        self.type = type
         self.flags = flags
         self.sequence = sequence
         self.process = process
-        self.command = command
-        self.version = version
+        self.error = error
+        self.request = request
         self.payload = payload
     }
 }
 
-public extension NetlinkGenericMessage {
+public extension NetlinkErrorMessage {
     
     public init?(data: Data) {
         
-        let headerLength = type(of: self).headerLength
-        
-        guard data.count >= headerLength
+        guard data.count >= NetlinkErrorMessage.length
             else { return nil }
         
-        let length = UInt32(bytes: (data[0], data[1], data[2], data[3]))
+        let length = Int(UInt32(bytes: (data[0], data[1], data[2], data[3])))
+        
+        guard length >= NetlinkErrorMessage.length
+            else { return nil }
         
         // netlink header
-        self.type = NetlinkMessageType(rawValue: UInt16(bytes: (data[4], data[5])))
+        let type = NetlinkMessageType(rawValue: UInt16(bytes: (data[4], data[5])))
+        
+        guard type == .error
+            else { return nil }
+        
         self.flags = NetlinkMessageFlag(rawValue: UInt16(bytes: (data[6], data[7])))
         self.sequence = UInt32(bytes: (data[8], data[9], data[10], data[11]))
         self.process = pid_t(bytes: (data[12], data[13], data[14], data[15]))
         
-        // generic header
-        self.command = NetlinkGenericCommand(rawValue: data[16])
-        self.version = NetlinkGenericVersion(rawValue: data[17])
-        self.unused = UInt16(bytes: (data[18], data[19]))
+        // error code
+        let errorCode = Int32(bytes: (data[16], data[17], data[18], data[19]))
         
-        // payload 
-        if data.count > type(of: self).headerLength {
+        guard let error = POSIXErrorCode(rawValue: -errorCode)
+            else { return nil }
+        
+        self.error = POSIXError(code: error)
+        
+        // request header
+        guard let header = NetlinkMessageHeader(data: Data(data[20 ..< NetlinkErrorMessage.length]))
+            else { return nil }
+        
+        self.request = header
+        
+        // payload
+        if data.count > NetlinkErrorMessage.length {
             
-            let payloadLength = Int(length) - headerLength
-            
-            self.payload = Data(data.suffix(from: headerLength).prefix(payloadLength))
+            self.payload = Data(data[NetlinkErrorMessage.length ..< length])
             
         } else {
             
@@ -149,10 +152,11 @@ public extension NetlinkGenericMessage {
             process.bytes.1,
             process.bytes.2,
             process.bytes.3,
-            command.rawValue,
-            version.rawValue,
-            unused.bytes.0,
-            unused.bytes.1
-            ]) + payload
+            error.code.rawValue.bytes.0,
+            error.code.rawValue.bytes.1,
+            error.code.rawValue.bytes.2,
+            error.code.rawValue.bytes.3
+            ]) + request.data + payload
     }
 }
+

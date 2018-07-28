@@ -11,37 +11,48 @@ import Glibc
 import Darwin.C
 #endif
 
-#if os(Linux) || XcodeLinux
-
 import Foundation
-import CNetlink
 import CLinuxWLAN
 
-public extension NetlinkAttribute {
+public extension NetlinkAttributeType {
     
     /// 802.11 netlink interface
     public enum NL80211 {
         
-        public static let wiphy = NetlinkAttribute(NL80211_ATTR_WIPHY)
+        public static let wiphy = NetlinkAttributeType(NL80211_ATTR_WIPHY)
         
-        public static let wihpyName = NetlinkAttribute(NL80211_ATTR_WIPHY_NAME)
+        public static let wihpyName = NetlinkAttributeType(NL80211_ATTR_WIPHY_NAME)
         
-        public static let interfaceIndex = NetlinkAttribute(NL80211_ATTR_IFINDEX)
+        public static let interfaceIndex = NetlinkAttributeType(NL80211_ATTR_IFINDEX)
         
-        public static let interfaceName = NetlinkAttribute(NL80211_ATTR_IFNAME)
+        public static let interfaceName = NetlinkAttributeType(NL80211_ATTR_IFNAME)
         
-        public static let interfaceType = NetlinkAttribute(NL80211_ATTR_IFTYPE)
+        public static let interfaceType = NetlinkAttributeType(NL80211_ATTR_IFTYPE)
         
-        public static let macAddress = NetlinkAttribute(NL80211_ATTR_MAC)
+        public static let macAddress = NetlinkAttributeType(NL80211_ATTR_MAC)
+        
+        public static let bss = NetlinkAttributeType(NL80211_ATTR_BSS)
+        
+        /// netlink attributes for a BSS
+        public enum BSS {
+            
+            public static let bssid = NetlinkAttributeType(NL80211_BSS_BSSID)
+        }
     }
 }
 
-fileprivate extension NetlinkAttribute {
+fileprivate extension NetlinkAttributeType {
     
     init(_ nl80211Attribute: nl80211_attrs) {
         
-        self.init(rawValue: Int32(nl80211Attribute.rawValue))
+        self.init(rawValue: UInt16(nl80211Attribute.rawValue))
     }
 }
 
-#endif
+fileprivate extension NetlinkAttributeType {
+    
+    init(_ nl80211Attribute: nl80211_bss) {
+        
+        self.init(rawValue: UInt16(nl80211Attribute.rawValue))
+    }
+}

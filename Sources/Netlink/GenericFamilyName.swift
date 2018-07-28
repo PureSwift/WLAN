@@ -11,10 +11,7 @@ import Glibc
 import Darwin.C
 #endif
 
-#if os(Linux) || XcodeLinux
-
 import Foundation
-import CNetlink
 import CLinuxWLAN
 
 /// Netlink Generic Family Name
@@ -32,5 +29,3 @@ public extension NetlinkGenericFamilyName {
     
     public static let nl80211 = NetlinkGenericFamilyName(rawValue: NL80211_GENL_NAME)
 }
-
-#endif

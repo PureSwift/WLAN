@@ -7,118 +7,141 @@
 
 #if os(Linux)
 import Glibc
-#elseif os(macOS) || os(iOS)
+#elseif os(macOS)
 import Darwin.C
 #endif
 
-#if os(Linux) || XcodeLinux
-
 import Foundation
 import CLinuxWLAN
-import CNetlink
 
 public final class NetlinkSocket {
     
-    internal let rawPointer: OpaquePointer
+    // MARK: - Properties
     
-    internal private(set) var callback: Callback?
+    public let netlinkProtocol: NetlinkSocketProtocol
     
-    public init() {
-        
-        self.rawPointer = nl_socket_alloc()
-    }
+    internal let internalSocket: CInt
+    
+    // MARK: - Initialization
     
     deinit {
         
-        nl_socket_free(rawPointer)
+        close(internalSocket)
+    }
+    
+    public init(_ netlinkProtocol: NetlinkSocketProtocol, group: Int32 = 0) throws {
+        
+        // open socket
+        let fileDescriptor = socket(PF_NETLINK, SOCK_RAW, netlinkProtocol.rawValue)
+        
+        guard fileDescriptor >= 0
+            else { throw POSIXError.fromErrno! }
+        
+        var address = sockaddr_nl(nl_family: __kernel_sa_family_t(AF_NETLINK),
+                                  nl_pad: UInt16(),
+                                  nl_pid: __u32(getpid()),
+                                  nl_groups: __u32(bitPattern: group))
+        
+        // initialize socket
+        self.internalSocket = fileDescriptor
+        self.netlinkProtocol = netlinkProtocol
+        
+        // bind socket
+        guard withUnsafePointer(to: &address, {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1, {
+                bind(internalSocket, $0, socklen_t(MemoryLayout<sockaddr_nl>.size))
+            })
+        }) >= 0 else { throw POSIXError.fromErrno! }
     }
     
     // MARK: - Methods
     
-    /// Create file descriptor and bind socket.
-    ///
-    /// Creates a new Netlink socket using socket() and binds the socket to the protocol
-    /// and local port specified in the sk socket object.
-    ///
-    /// Fails if the socket is already connected.
-    public func connect(using socketProtocol: NetlinkSocketProtocol) throws {
+    @discardableResult
+    public func send(_ data: Data) throws -> Int {
         
-        try nl_connect(rawPointer, socketProtocol.rawValue).nlThrow()
+        var address = sockaddr_nl(nl_family: __kernel_sa_family_t(AF_NETLINK),
+                                  nl_pad: 0,
+                                  nl_pid: 0,
+                                  nl_groups: 0)
+        
+        let sentBytes = withUnsafePointer(to: &address, {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1, { (socketPointer) in
+                data.withUnsafeBytes { (dataPointer: UnsafePointer<UInt8>) in
+                    sendto(internalSocket, UnsafeRawPointer(dataPointer), data.count, 0, socketPointer, socklen_t(MemoryLayout<sockaddr_nl>.size))
+                }
+            })
+        })
+        
+        guard sentBytes >= 0
+            else { throw POSIXError.fromErrno! }
+        
+        return sentBytes
     }
     
-    /// Transmit raw data over Netlink socket.
-    public func send(_ data: Data) throws {
+    public func recieve <T: NetlinkMessageProtocol> (_ message: T.Type) throws -> [T] {
         
-        let size = data.count
+        let data = try recieve()
         
-        try data.withUnsafeBytes {
-            try nl_sendto(rawPointer, UnsafeMutableRawPointer(mutating: $0), size).nlThrow()
+        if let errorMessages = try? NetlinkErrorMessage.from(data: data),
+            let errorMessage = errorMessages.first {
+            
+            throw errorMessage.error
+            
+        } else if let messages = try? T.from(data: data) {
+            
+            return messages
+            
+        } else {
+            
+            throw NetlinkSocketError.invalidData(data)
         }
     }
     
-    /// Finalize and transmit Netlink message.
-    @discardableResult
-    public func send(message: NetlinkMessage) throws -> Int {
+    public func recieve() throws -> Data {
         
-        let count = nl_send_auto(rawPointer, message.rawPointer)
+        let chunkSize = Int(getpagesize())
         
-        try count.nlThrow() // validate
+        var readData = Data()
+        var chunk = Data()
+        repeat {
+            chunk = try recieveChunk(size: chunkSize)
+            readData.append(chunk)
+        } while chunk.count == chunkSize // keep reading
         
-        return Int(count)
+        return readData
     }
     
-    /// Recieve answer.
-    public func recieve() throws {
+    internal func recieveChunk(size: Int, flags: CInt = 0) throws -> Data {
         
-        try nl_recvmsgs_default(rawPointer).nlThrow()
-    }
-    
-    public func modifyCallback(type: nl_cb_type, kind: nl_cb_kind, callback: @escaping Callback) throws {
+        var data = Data(count: size)
         
-        let objectPointer = Unmanaged.passUnretained(self).toOpaque()
+        let recievedBytes = data.withUnsafeMutableBytes { (dataPointer: UnsafeMutablePointer<UInt8>) in
+            recv(internalSocket, UnsafeMutableRawPointer(dataPointer), size, flags)
+        }
         
-        try nl_socket_modify_cb(rawPointer, type, kind, NetlinkSocketRecievedMessageCallback, objectPointer).nlThrow()
+        guard recievedBytes >= 0
+            else { throw POSIXError.fromErrno! }
         
-        self.callback = callback
-    }
-    
-    public func addMembership(group: Int32) throws {
-        
-        try nl_socket_add_membership(rawPointer, group).nlThrow()
-    }
-    
-    // MARK: - Accessors
-    
-    /// Return the file descriptor of the backing socket.
-    public var fileDescriptor: Int32? {
-        
-        // File descriptor or -1 if not available.
-        let fileDescriptor = nl_socket_get_fd(rawPointer)
-        
-        return fileDescriptor != -1 ? fileDescriptor : nil
+        return Data(data.prefix(recievedBytes))
     }
 }
 
-// MARK: - Handle
+// MARK: - Supporting Types
 
-extension NetlinkSocket: Handle { }
-
-// MARK: - Callback
-
-public extension NetlinkSocket {
+public enum NetlinkSocketError: Error {
     
-    public typealias Callback = () -> (nl_cb_action)
+    case invalidProtocol
+    case invalidData(Data)
 }
 
-@_silgen_name("swift_netlink_recvmsg_msg_cb")
-fileprivate func NetlinkSocketRecievedMessageCallback(socket: OpaquePointer?, object: UnsafeMutableRawPointer?) -> Int32 {
-    
-    guard let object = object else { return 0 }
-    
-    let netlinkSocket = Unmanaged<NetlinkSocket>.fromOpaque(object).takeUnretainedValue()
-    
-    return Int32(netlinkSocket.callback?().rawValue ?? 0)
-}
+// MARK: - Linux Support
 
+#if os(Linux)
+    
+internal let SOCK_RAW = CInt(Glibc.SOCK_RAW.rawValue)
 
 #endif
+
+internal let AF_NETLINK: CInt = 16
+
+internal let PF_NETLINK: CInt = 16
