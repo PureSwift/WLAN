@@ -5,7 +5,7 @@
 //  Created by Alsey Coleman Miller on 7/7/18.
 //
 
-public struct NetlinkGenericGroup {
+public struct NetlinkGenericGroupName {
     
     public let rawValue: String
     
