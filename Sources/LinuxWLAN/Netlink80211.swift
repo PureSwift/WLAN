@@ -84,40 +84,38 @@ internal extension Netlink80211 {
         func scanResults() throws -> [WLANNetwork] {
             
             var networks = [WLANNetwork]()
-            /*
-            // Create message
-            let message = NetlinkMessage()
-            
-            // Setup which command to run.
-            message.genericView.put(port: 0,
-                                    sequence: 0,
-                                    family: driverID,
-                                    headerLength: 0,
-                                    flags: NetlinkMessageFlag.Get.dump,
-                                    command: NetlinkGenericCommand.NL80211.getScanResults,
-                                    version: 0)
             
             // Add message attribute, specify which interface to use.
-            try message.setValue(UInt32(interfaceIndex), for: NetlinkAttribute.NL80211.interfaceIndex)
+            let attribute = NetlinkAttribute(value: UInt32(interfaceIndex),
+                                             type: NetlinkAttributeType.NL80211.interfaceIndex)
             
-            // Add the callback.
-            try socket.modifyCallback(type: NL_CB_VALID, kind: NL_CB_CUSTOM) {
-                
-                print("Recieved message")
-                
-                return NL_SKIP
-            }
+            // Setup which command to run.
+            let message = NetlinkGenericMessage(type: NetlinkMessageType(rawValue: UInt16(driver.rawValue)),
+                                                flags: [.request, .dump],
+                                                sequence: 0,
+                                                process: getpid(),
+                                                command: NetlinkGenericCommand.NL80211.getScanResults,
+                                                version: 0,
+                                                payload: attribute.paddedData)
             
             // Send the message.
-            let sentBytes = try socket.send(message: message)
+            let sentBytes = try socket.send(message.data)
             
             print("Sent \(sentBytes) bytes to kernel")
             
             print(message.data.map { $0 })
             
             // Retrieve the kernel's answer
-            try socket.recieve()
-            */
+            let responseData = try socket.recieve()
+            
+            print("Recieved \(responseData.count) bytes from the kernel")
+            
+            print(responseData.map { $0 })
+            
+            guard let response = NetlinkGenericMessage(data: responseData)
+                else { throw NetlinkSocketError.invalidData(responseData) }
+            
+            
             
             return networks
         }
