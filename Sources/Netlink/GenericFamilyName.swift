@@ -30,6 +30,18 @@ public struct NetlinkGenericFamilyName: RawRepresentable {
     }
 }
 
+// MARK: - Equatable
+
+extension NetlinkGenericFamilyName: Equatable {
+    
+    public static func == (lhs: NetlinkGenericFamilyName, rhs: NetlinkGenericFamilyName) -> Bool {
+        
+        return lhs.rawValue == rhs.rawValue
+    }
+}
+
+// MARK: - Codable
+
 extension NetlinkGenericFamilyName: Codable {
     
     public init(from decoder: Decoder) throws {

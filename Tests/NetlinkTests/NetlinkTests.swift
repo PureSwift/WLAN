@@ -82,14 +82,22 @@ final class NetlinkTests: XCTestCase {
             let response = messages.first,
             let attributes = try? NetlinkAttribute.from(message: response),
             let identifierAttribute = attributes.first(where: { $0.type == NetlinkAttributeType.Generic.familyIdentifier }),
-            let identifier = UInt16(attributeData: identifierAttribute.payload)
-            else { XCTFail(); return }
+            let identifier = UInt16(attributeData: identifierAttribute.payload),
+            let nameAttribute = attributes.first(where: { $0.type == NetlinkAttributeType.Generic.familyName }),
+            let nameRawValue = String(attributeData: nameAttribute.payload),
+            let versionAttribute = attributes.first(where: { $0.type == NetlinkAttributeType.Generic.version }),
+            let version = UInt32(attributeData: versionAttribute.payload)
+            else { XCTFail("Could not parse"); return }
         
-        // validate attribute value
-        XCTAssertEqual(identifier, 28)
+        let name = NetlinkGenericFamilyName(rawValue: nameRawValue)
+        
+        // validate attribute values
         XCTAssertEqual(response.command, .newFamily)
+        XCTAssertEqual(identifier, 28)
+        XCTAssertEqual(name, .nl80211)
+        XCTAssertEqual(version, 1)
         
-        print(attributes.map { $0.type })
+        print(versionAttribute.payload.map { $0 })
     }
     
     func testGetScanResultsCommand() {

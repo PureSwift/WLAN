@@ -48,8 +48,18 @@ public extension NetlinkAttributeType {
     
     public enum Generic {
         
+        public static let familyIdentifier = NetlinkAttributeType(rawValue: UInt16(CTRL_ATTR_FAMILY_ID))
+        
         public static let familyName = NetlinkAttributeType(rawValue: UInt16(CTRL_ATTR_FAMILY_NAME))
         
-        public static let familyIdentifier = NetlinkAttributeType(rawValue: UInt16(CTRL_ATTR_FAMILY_ID))
+        public static let version = NetlinkAttributeType(rawValue: UInt16(CTRL_ATTR_VERSION))
+        
+        public static let headerSize = NetlinkAttributeType(rawValue: UInt16(CTRL_ATTR_HDRSIZE))
+        
+        public static let maxAttributes = NetlinkAttributeType(rawValue: UInt16(CTRL_ATTR_MAXATTR))
+        
+        public static let operations = NetlinkAttributeType(rawValue: UInt16(CTRL_ATTR_OPS))
+        
+        public static let multicastGroups = NetlinkAttributeType(rawValue: UInt16(CTRL_ATTR_MCAST_GROUPS))
     }
 }
