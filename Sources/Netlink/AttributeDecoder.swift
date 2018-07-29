@@ -14,7 +14,7 @@ import Codable
 internal typealias DecoderProtocol = Decoder
 #endif
 
-
+/// Netlink Attribute Decoder
 public struct NetlinkAttributeDecoder {
     
     public typealias Log = (String) -> ()
@@ -35,7 +35,7 @@ public struct NetlinkAttributeDecoder {
     
     public func decode <T: Decodable> (_ type: T.Type, from data: Data) throws -> T {
         
-        let attributes = try NetlinkAttribute.from(data: data)
+        let attributes = try decode(data)
         
         let decoder = Decoder(referencing: .attributes(attributes),
                               at: [],
@@ -49,6 +49,42 @@ public struct NetlinkAttributeDecoder {
     public func decode <T: Decodable, Message: NetlinkMessageProtocol> (_ type: T.Type, from message: Message) throws -> T {
         
         return try decode(type, from: message.payload)
+    }
+    
+    public func decode <T: NetlinkMessageProtocol> (_ message: T) throws -> [NetlinkAttribute] {
+        
+        return try decode(message.payload)
+    }
+    
+    public func decode(_ data: Data) throws -> [NetlinkAttribute] {
+        
+        return try NetlinkAttributeDecoder.decode(data, codingPath: [])
+    }
+    
+    internal static func decode(_ data: Data, codingPath: [CodingKey]) throws -> [NetlinkAttribute] {
+        
+        var attributes = [NetlinkAttribute]()
+        
+        var index = 0
+        while index < data.count {
+            
+            let length = Int(UInt16(bytes: (data[index], data[index + 1])))
+            
+            let actualLength = length.extendTo4Bytes
+            
+            let attributeData = Data(data[index ..< index + actualLength])
+            
+            guard let attribute = NetlinkAttribute(data: attributeData) else {
+                
+                throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: codingPath, debugDescription: "Could not decode attribute at index \(index)"))
+            }
+            
+            attributes.append(attribute)
+            
+            index += actualLength
+        }
+        
+        return attributes
     }
 }
 
@@ -98,7 +134,7 @@ internal extension NetlinkAttributeDecoder {
                 
             case let .attribute(attribute):
                 
-                let attributes = try NetlinkAttribute.from(data: attribute.payload)
+                let attributes = try decode(attribute.payload, codingPath: codingPath)
                 
                 let keyedContainer = AttributesKeyedDecodingContainer<Key>(referencing: self, wrapping: attributes)
                 
@@ -121,7 +157,7 @@ internal extension NetlinkAttributeDecoder {
             case let .attribute(attribute):
                 
                 // forceably cast to array
-                guard let attributes = try? NetlinkAttribute.from(data: attribute.payload)  else {
+                guard let attributes = try? decode(attribute.payload, codingPath: codingPath) else {
                     
                     throw DecodingError.typeMismatch(UnkeyedDecodingContainer.self, DecodingError.Context(codingPath: self.codingPath, debugDescription: "Cannot get unkeyed decoding container, invalid top container \(container)."))
                 }
@@ -634,17 +670,17 @@ fileprivate extension NetlinkAttributeDecoder {
             return decoded
         }
         
-        mutating func nestedContainer<NestedKey>(keyedBy type: NestedKey.Type) throws -> Swift.KeyedDecodingContainer<NestedKey> where NestedKey : CodingKey {
+        mutating func nestedContainer<NestedKey>(keyedBy type: NestedKey.Type) throws -> KeyedDecodingContainer<NestedKey> where NestedKey : CodingKey {
             
             throw DecodingError.typeMismatch(type, DecodingError.Context(codingPath: codingPath, debugDescription: "Cannot decode \(type)"))
         }
         
-        mutating func nestedUnkeyedContainer() throws -> Swift.UnkeyedDecodingContainer {
+        mutating func nestedUnkeyedContainer() throws -> UnkeyedDecodingContainer {
             
             throw DecodingError.typeMismatch([Any].self, DecodingError.Context(codingPath: codingPath, debugDescription: "Cannot decode unkeyed container."))
         }
         
-        mutating func superDecoder() throws -> Swift.Decoder {
+        mutating func superDecoder() throws -> DecoderProtocol {
             
             // set coding key context
             self.decoder.codingPath.append(Index(intValue: currentIndex))

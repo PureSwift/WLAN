@@ -50,7 +50,7 @@ internal extension Netlink80211 {
         let socket: NetlinkSocket
         
         // "nl80211" driver ID
-        let driver: NetlinkGenericFamilyIdentifier
+        let driver: NetlinkGenericFamilyController
         
         init(interface: WLANInterface) throws {
             
@@ -86,7 +86,7 @@ internal extension Netlink80211 {
                                              type: NetlinkAttributeType.NL80211.interfaceIndex)
             
             // Setup which command to run.
-            let message = NetlinkGenericMessage(type: NetlinkMessageType(rawValue: UInt16(driver.rawValue)),
+            let message = NetlinkGenericMessage(type: NetlinkMessageType(rawValue: UInt16(driver.identifier.rawValue)),
                                                 flags: [.request, .dump],
                                                 sequence: 0,
                                                 process: getpid(),

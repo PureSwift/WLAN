@@ -74,7 +74,7 @@ extension NetlinkGetGenericFamilyIdentifierCommand: Codable {
 public extension NetlinkSocket {
     
     /// Query the family name.
-    func resolve(name: NetlinkGenericFamilyName) throws -> NetlinkGenericFamilyIdentifier {
+    func resolve(name: NetlinkGenericFamilyName) throws -> NetlinkGenericFamilyController {
         
         guard netlinkProtocol == .generic
             else { throw NetlinkSocketError.invalidProtocol }
@@ -96,14 +96,14 @@ public extension NetlinkSocket {
         try send(message.data)
         let recievedData = try recieve()
         
+        let decoder = NetlinkAttributeDecoder()
+        
         // parse response
         guard let messages = try? NetlinkGenericMessage.from(data: recievedData),
             let response = messages.first,
-            let attributes = try? NetlinkAttribute.from(message: response),
-            let identifierAttribute = attributes.first(where: { $0.type == NetlinkAttributeType.Generic.Controller.familyIdentifier }),
-            let identifier = UInt16(attributeData: identifierAttribute.payload)
+            let controller = try? decoder.decode(NetlinkGenericFamilyController.self, from: response)
             else { throw NetlinkSocketError.invalidData(recievedData) }
         
-        return NetlinkGenericFamilyIdentifier(rawValue: identifier)
+        return controller
     }
 }

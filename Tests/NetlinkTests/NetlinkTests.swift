@@ -80,7 +80,7 @@ final class NetlinkTests: XCTestCase {
         // parse response
         guard let messages = try? NetlinkGenericMessage.from(data: data),
             let response = messages.first,
-            let attributes = try? NetlinkAttribute.from(message: response),
+            let attributes = try? NetlinkAttributeDecoder().decode(response),
             let identifierAttribute = attributes.first(where: { $0.type == NetlinkAttributeType.Generic.Controller.familyIdentifier }),
             let identifier = UInt16(attributeData: identifierAttribute.payload),
             let nameAttribute = attributes.first(where: { $0.type == NetlinkAttributeType.Generic.Controller.familyName }),
@@ -92,7 +92,7 @@ final class NetlinkTests: XCTestCase {
             let maxAttributesAttribute = attributes.first(where: { $0.type == NetlinkAttributeType.Generic.Controller.maxAttributes }),
             let maxAttributes = UInt32(attributeData: maxAttributesAttribute.payload),
             let operationsAttribute = attributes.first(where: { $0.type == NetlinkAttributeType.Generic.Controller.operations }),
-            let operationsArrayAttributes = try? NetlinkAttribute.from(data: operationsAttribute.payload)
+            let operationsArrayAttributes = try? NetlinkAttributeDecoder().decode(operationsAttribute.payload)
             else { XCTFail("Could not parse"); return }
         
         let name = NetlinkGenericFamilyName(rawValue: nameRawValue)
@@ -175,7 +175,7 @@ final class NetlinkTests: XCTestCase {
         catch { XCTFail("Could not decode: \(error)"); return }
                 
         var attributes = [NetlinkAttribute]()
-        XCTAssertNoThrow(attributes = try NetlinkAttribute.from(message: message))
+        XCTAssertNoThrow(attributes = try NetlinkAttributeDecoder().decode(message))
         
         guard attributes.count == 1
             else { XCTFail(); return }
