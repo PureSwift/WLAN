@@ -33,7 +33,13 @@ public extension NetlinkAttributeType {
         
         public static let bss = NetlinkAttributeType(NL80211_ATTR_BSS)
         
-        /// netlink attributes for a BSS
+        public static let scanFrequencies = NetlinkAttributeType(NL80211_ATTR_SCAN_FREQUENCIES)
+        
+        public static let scanSSIDs = NetlinkAttributeType(NL80211_ATTR_SCAN_SSIDS)
+        
+        public static let generation = NetlinkAttributeType(NL80211_ATTR_GENERATION)
+        
+        /// Netlink attributes for BSS
         public enum BSS {
             
             public static let bssid = NetlinkAttributeType(NL80211_BSS_BSSID)

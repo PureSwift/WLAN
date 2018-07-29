@@ -90,17 +90,19 @@ internal extension Netlink80211 {
             print("Interface:", interfaceIndex)
             
             // Add message attribute, specify which interface to use.
-            let attribute = NetlinkAttribute(value: UInt32(interfaceIndex),
-                                             type: NetlinkAttributeType.NL80211.interfaceIndex)
+            let interfaceAttribute = NetlinkAttribute(value: UInt32(interfaceIndex),
+                                                      type: NetlinkAttributeType.NL80211.interfaceIndex)
+            
+            let ssidAttribute = NetlinkAttribute(type: NetlinkAttributeType.NL80211.scanSSIDs, payload: Data())
             
             // Setup which command to run.
             let message = NetlinkGenericMessage(type: NetlinkMessageType(rawValue: UInt16(driver.identifier.rawValue)),
                                                 flags: [.request, .acknowledgment],
-                                                sequence: 0,
+                                                sequence: 1,
                                                 process: getpid(),
                                                 command: NetlinkGenericCommand.NL80211.triggerScan,
                                                 version: 0,
-                                                payload: attribute.paddedData)
+                                                payload: interfaceAttribute.paddedData + ssidAttribute.paddedData)
             
             // Send the message.
             try socket.send(message.data)
@@ -141,9 +143,9 @@ internal extension Netlink80211 {
             
             // Setup which command to run.
             let message = NetlinkGenericMessage(type: NetlinkMessageType(rawValue: UInt16(driver.identifier.rawValue)),
-                                                flags: [.request],
-                                                sequence: 0,
-                                                process: 0,
+                                                flags: [.request, .acknowledgment],
+                                                sequence: 2,
+                                                process: getpid(),
                                                 command: NetlinkGenericCommand.NL80211.getScanResults,
                                                 version: 0,
                                                 payload: attribute.paddedData)
