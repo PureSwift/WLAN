@@ -109,16 +109,9 @@ public final class NetlinkSocket {
         let data = try recieve()
         
         if let errorMessages = try? NetlinkErrorMessage.from(data: data),
-            let errorMessage = errorMessages.first {
+            let error = errorMessages.first(where: { $0.error != nil }) {
             
-            if let posixError = errorMessage.error {
-                
-                throw posixError
-                
-            } else {
-                
-                throw errorMessage
-            }
+            throw error
             
         } else if let messages = try? T.from(data: data) {
             

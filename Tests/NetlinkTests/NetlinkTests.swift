@@ -136,7 +136,7 @@ final class NetlinkTests: XCTestCase {
         XCTAssertEqual(message.length, 28)
         XCTAssertEqual(Int(message.length), data.count)
         XCTAssertEqual(message.type.rawValue, 28) // NetlinkGenericFamilyIdentifier(rawValue: 28)
-        XCTAssertEqual(message.command.rawValue, NetlinkGenericCommand.NL80211.getScanResults.rawValue)
+        XCTAssertEqual(message.command.rawValue, NetlinkGenericCommand.NL80211.getScan.rawValue)
         XCTAssertEqual(message.version.rawValue, 0)
         XCTAssertEqual(message.flags, [.dump, .request])
         XCTAssertEqual(message.sequence, 0)

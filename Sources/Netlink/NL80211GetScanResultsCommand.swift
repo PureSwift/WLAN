@@ -14,7 +14,7 @@ import Foundation
 
 public struct NL80211GetScanResultsCommand {
     
-    public static let command = NetlinkGenericCommand.NL80211.getScanResults
+    public static let command = NetlinkGenericCommand.NL80211.getScan
     
     public static let version: NetlinkGenericVersion = 0
     

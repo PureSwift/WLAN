@@ -21,7 +21,7 @@ public extension NetlinkGenericCommand {
         
         public static let triggerScan = NetlinkGenericCommand(NL80211_CMD_TRIGGER_SCAN)
         
-        public static let getScanResults = NetlinkGenericCommand(NL80211_CMD_GET_SCAN)
+        public static let getScan = NetlinkGenericCommand(NL80211_CMD_GET_SCAN)
         
         public static let newScanResults = NetlinkGenericCommand(NL80211_CMD_NEW_SCAN_RESULTS)
     }

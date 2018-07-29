@@ -58,6 +58,14 @@ internal extension Netlink80211 {
         // "nl80211" driver ID
         let driver: NetlinkGenericFamilyController
         
+        private var sequence: UInt32 = 0
+        
+        private func newSequence() -> UInt32 {
+            
+            sequence += 1
+            return sequence
+        }
+        
         init(interface: WLANInterface) throws {
             
             // Use this wireless interface for scanning.
@@ -99,11 +107,13 @@ internal extension Netlink80211 {
             // Setup which command to run.
             let message = NetlinkGenericMessage(type: NetlinkMessageType(rawValue: UInt16(driver.identifier.rawValue)),
                                                 flags: [.request],
-                                                sequence: 1,
+                                                sequence: newSequence(),
                                                 process: getpid(),
                                                 command: NetlinkGenericCommand.NL80211.triggerScan,
                                                 version: 0,
-                                                payload: interfaceAttribute.paddedData + ssidAttribute.paddedData)
+                                                payload: interfaceAttribute.paddedData)
+            
+            print("Sent \(message.data.count) bytes to kernel")
             
             // Send the message.
             try socket.send(message.data)
@@ -145,15 +155,17 @@ internal extension Netlink80211 {
             
             // Setup which command to run.
             let message = NetlinkGenericMessage(type: NetlinkMessageType(rawValue: UInt16(driver.identifier.rawValue)),
-                                                flags: [.request, .acknowledgment],
-                                                sequence: 2,
+                                                flags: [.request],
+                                                sequence: newSequence(),
                                                 process: getpid(),
-                                                command: NetlinkGenericCommand.NL80211.getScanResults,
+                                                command: NetlinkGenericCommand.NL80211.getScan,
                                                 version: 0,
                                                 payload: attribute.paddedData)
             
             // Send the message.
             try socket.send(message.data)
+            
+            print("Sent \(message.data.count) to kernel")
             
             // Retrieve the kernel's answer
             let messages = try socket.recieve(NetlinkGenericMessage.self)
