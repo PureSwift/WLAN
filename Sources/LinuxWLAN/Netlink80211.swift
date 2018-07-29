@@ -42,6 +42,7 @@ internal extension Netlink80211 {
         
         enum Error: Swift.Error {
             
+            case invalidResponse
             case scanningNotSupported
         }
         
@@ -86,7 +87,24 @@ internal extension Netlink80211 {
             try socket.subscribe(to: scanGroup.identifier)
             defer { try? socket.unsubscribe(from: scanGroup.identifier) }
             
-            //
+            // Add message attribute, specify which interface to use.
+            let attribute = NetlinkAttribute(value: UInt32(interfaceIndex),
+                                             type: NetlinkAttributeType.NL80211.interfaceIndex)
+            
+            // Setup which command to run.
+            let message = NetlinkGenericMessage(type: NetlinkMessageType(rawValue: UInt16(driver.identifier.rawValue)),
+                                                flags: [.request],
+                                                sequence: 0,
+                                                process: getpid(),
+                                                command: NetlinkGenericCommand.NL80211.triggerScan,
+                                                version: 0,
+                                                payload: attribute.paddedData)
+            
+            // Send the message.
+            try socket.send(message.data)
+            
+            // TODO: verify kernel answer
+            sleep(3)
         }
         
         /// Issue NL80211_CMD_GET_SCAN.
@@ -112,7 +130,12 @@ internal extension Netlink80211 {
             
             // Retrieve the kernel's answer
             let messages = try socket.recieve(NetlinkGenericMessage.self)
-                        
+            
+            guard let response = messages.first
+                else { throw Error.invalidResponse }
+            
+            
+            
             return networks
         }
     }

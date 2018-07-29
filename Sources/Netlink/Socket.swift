@@ -67,7 +67,6 @@ public final class NetlinkSocket {
                        UnsafeRawPointer(pointer),
                        socklen_t(MemoryLayout<CInt>.size))
         }) == 0 else { throw POSIXError.fromErrno! }
-        
     }
     
     public func unsubscribe(from group: NetlinkGenericGroupIdentifier) throws {

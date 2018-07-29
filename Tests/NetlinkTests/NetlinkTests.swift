@@ -17,6 +17,7 @@ final class NetlinkTests: XCTestCase {
         ("testResolveGenericFamilyCommand", testResolveGenericFamilyCommand),
         ("testResolveGenericFamilyResponse", testResolveGenericFamilyResponse),
         ("testGetScanResultsCommand", testGetScanResultsCommand),
+        ("testTriggerScanResultsResponse", testTriggerScanResultsResponse),
         ("testErrorMessage", testErrorMessage)
     ]
     
@@ -186,6 +187,34 @@ final class NetlinkTests: XCTestCase {
         
         // libnl message
         XCTAssertEqual(NetlinkGenericMessage(data: Data([28, 0, 0, 0, 28, 0, 5, 5, 96, 138, 91, 91, 237, 32, 0, 92, 32, 0, 0, 0, 8, 0, 3, 0, 3, 0, 0, 0]))?.flags, [.dump, .acknowledgment, .request])
+    }
+    
+    func testTriggerScanResultsResponse() {
+        
+        let data = Data([160, 0, 0, 0, 28, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 33, 1, 0, 0, 8, 0, 1, 0, 1, 0, 0, 0, 8, 0, 3, 0, 4, 0, 0, 0, 12, 0, 153, 0, 1, 0, 0, 0, 1, 0, 0, 0, 4, 0, 45, 0, 108, 0, 44, 0, 8, 0, 0, 0, 108, 9, 0, 0, 8, 0, 1, 0, 113, 9, 0, 0, 8, 0, 2, 0, 118, 9, 0, 0, 8, 0, 3, 0, 123, 9, 0, 0, 8, 0, 4, 0, 128, 9, 0, 0, 8, 0, 5, 0, 133, 9, 0, 0, 8, 0, 6, 0, 138, 9, 0, 0, 8, 0, 7, 0, 143, 9, 0, 0, 8, 0, 8, 0, 148, 9, 0, 0, 8, 0, 9, 0, 153, 9, 0, 0, 8, 0, 10, 0, 158, 9, 0, 0, 8, 0, 11, 0, 163, 9, 0, 0, 8, 0, 12, 0, 168, 9, 0, 0])
+        
+        guard let message = NetlinkGenericMessage(data: data)
+            else { XCTFail("Could not parse message from data"); return }
+        
+        XCTAssertEqual(message.data, data)
+        XCTAssertEqual(message.length, 160)
+        XCTAssertEqual(Int(message.length), data.count)
+        XCTAssertEqual(message.type.rawValue, 28) // driver ID
+        XCTAssertEqual(message.command.rawValue, NetlinkGenericCommand.NL80211.triggerScan.rawValue)
+        XCTAssertEqual(message.version.rawValue, 1)
+        XCTAssertEqual(message.flags, 0)
+        XCTAssertEqual(message.sequence, 0)
+        
+        do {
+            
+            var decoder = NetlinkAttributeDecoder()
+            decoder.log = { print("Decoder:", $0) }
+            let command = try decoder.decode(NL80211GetScanResultsCommand.self, from: message)
+            
+            XCTAssertEqual(command.interface, 3)
+        }
+            
+        catch { XCTFail("Could not decode: \(error)"); return }
     }
     
     func testErrorMessage() {
