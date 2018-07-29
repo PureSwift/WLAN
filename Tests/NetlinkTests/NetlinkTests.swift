@@ -240,10 +240,10 @@ final class NetlinkTests: XCTestCase {
             XCTAssertEqual(error.sequence, 0)
             XCTAssertEqual(error.flags, [])
             XCTAssertEqual(error.type, .error)
-            XCTAssertEqual(error.errorCode, 95)
+            XCTAssertEqual(error.errorCode, -95)
             
             #if os(Linux)
-            XCTAssertEqual(error.error.code, .EOPNOTSUPP)
+            XCTAssertEqual(error.error?.code, .EOPNOTSUPP)
             #endif
         }
         
