@@ -82,12 +82,22 @@ internal extension NetlinkAttributeDecoder {
         
         // MARK: - Methods
         
-        func container<Key: CodingKey>(keyedBy type: Key.Type) throws -> KeyedDecodingContainer<Key> {
+        func container <Key: CodingKey> (keyedBy type: Key.Type) throws -> KeyedDecodingContainer<Key> {
             
             log?("Requested container keyed by \(type) for path \"\(codingPathString)\"")
             
             let container = self.stack.top
-            
+            /*
+            switch container {
+                
+            case let .attribute(attribute):
+                
+                return AttributesUnkeyedDecodingContainer(referencing: self, wrapping: attributes)
+                
+            case let .attribute(attribute):
+                
+            }
+            */
             guard case let .attributes(attributes) = container else {
                 
                 throw DecodingError.typeMismatch(KeyedDecodingContainer<Key>.self, DecodingError.Context(codingPath: self.codingPath, debugDescription: "Cannot get keyed decoding container, invalid top container \(container)."))
@@ -102,17 +112,28 @@ internal extension NetlinkAttributeDecoder {
             
             log?("Requested unkeyed container for path \"\(codingPathString)\"")
             
-            fatalError()
-            /*
             let container = self.stack.top
             
-            guard case let .relationship(managedObjects) = container else {
+            switch container {
                 
-                throw DecodingError.typeMismatch(UnkeyedDecodingContainer.self, DecodingError.Context(codingPath: self.codingPath, debugDescription: "Cannot get unkeyed decoding container, invalid top container \(container)."))
+            case let .attributes(attributes):
+                
+                return AttributesUnkeyedDecodingContainer(referencing: self, wrapping: attributes)
+                
+            case let .attribute(attribute):
+                
+                // forceably cast to array
+                guard let attributes = try? NetlinkAttribute.from(data: attribute.payload)  else {
+                    
+                    throw DecodingError.typeMismatch(UnkeyedDecodingContainer.self, DecodingError.Context(codingPath: self.codingPath, debugDescription: "Cannot get unkeyed decoding container, invalid top container \(container)."))
+                }
+                
+                // replace stack
+                self.stack.pop()
+                self.stack.push(.attributes(attributes))
+                
+                return AttributesUnkeyedDecodingContainer(referencing: self, wrapping: attributes)
             }
-            
-            return RelationshipUnkeyedDecodingContainer(referencing: self, wrapping: managedObjects)
-            */
         }
         
         func singleValueContainer() throws -> SingleValueDecodingContainer {
@@ -127,28 +148,6 @@ internal extension NetlinkAttributeDecoder {
             }
             
             return AttributeSingleValueDecodingContainer(referencing: self, wrapping: attribute)
-            
-            /*
-            let container = self.stack.top
-            
-            switch container {
-                
-            // get single value container for attribute value
-            case let .value(value):
-                
-                return AttributeSingleValueDecodingContainer(referencing: self, wrapping: value)
-                
-                // get single value container for to-one relationship managed object
-            // decodes to CoreDataIdentifier
-            case let .managedObject(managedObject):
-                
-                return RelationshipSingleValueDecodingContainer(referencing: self, wrapping: managedObject)
-                
-            case .relationship:
-                
-                throw DecodingError.typeMismatch(SingleValueDecodingContainer.self, DecodingError.Context(codingPath: self.codingPath, debugDescription: "Cannot get single value decoding container, invalid top container \(container)."))
-            }
-            */
         }
     }
 }
@@ -200,62 +199,6 @@ fileprivate extension NetlinkAttributeDecoder.Decoder {
         stack.pop()
         
         return decoded
-        
-        /*
-        if let string = value as? String, type is URL.Type {
-            
-            return URL(string: string) as! T
-            
-        } else if type is Data.Type {
-            
-            return try unbox(value, as: type)
-            
-        } else if type is URL.Type {
-            
-            return try unbox(value, as: type)
-            
-        } else {
-            
-            // attempt to get to-one relationship as CoreDataIdentifier
-            if let identifierType = type as? CoreDataIdentifier.Type,
-                let managedObject = value as? NSManagedObject {
-                
-                // create identifier from managed object
-                return identifierType.init(managedObject: managedObject) as! T
-            }
-            
-            // push and decode container
-            let container: CoreDataDecoder.Stack.Container
-            
-            if let managedObject = value as? NSManagedObject {
-                
-                // keyed container for relationship
-                container = .managedObject(managedObject)
-                
-            } else if let managedObjects = value as? Set<NSManagedObject> {
-                
-                // Unkeyed container for relationship
-                container = .relationship(Array(managedObjects))
-                
-            } else if let orderedSet = value as? NSOrderedSet,
-                let managedObjects = orderedSet.array as? [NSManagedObject] {
-                
-                // Unkeyed container for relationship
-                container = .relationship(managedObjects)
-                
-            } else {
-                
-                /// single value container for attributes (including identifier)
-                container = .value(value)
-            }
-            
-            // push container to stack and decode using Decodable implementation
-            stack.push(container)
-            let decoded = try T(from: self)
-            stack.pop()
-            return decoded
-        }
-        */
     }
 }
 
@@ -623,6 +566,165 @@ fileprivate extension NetlinkAttributeDecoder {
         func decode <T : Decodable> (_ type: T.Type) throws -> T {
             
             return try self.decoder.unboxDecodable(container, as: type)
+        }
+    }
+}
+
+
+// MARK: UnkeyedDecodingContainer
+
+fileprivate extension NetlinkAttributeDecoder {
+    
+    fileprivate struct AttributesUnkeyedDecodingContainer: UnkeyedDecodingContainer {
+        
+        // MARK: Properties
+        
+        /// A reference to the encoder we're reading from.
+        fileprivate let decoder: Decoder
+        
+        /// A reference to the container we're reading from.
+        fileprivate let container: [NetlinkAttribute]
+        
+        /// The path of coding keys taken to get to this point in decoding.
+        public let codingPath: [CodingKey]
+        
+        public private(set) var currentIndex: Int = 0
+        
+        // MARK: Initialization
+        
+        /// Initializes `self` by referencing the given decoder and container.
+        fileprivate init(referencing decoder: Decoder, wrapping container: [NetlinkAttribute]) {
+            
+            self.decoder = decoder
+            self.container = container
+            self.codingPath = decoder.codingPath
+        }
+        
+        // MARK: UnkeyedDecodingContainer
+        
+        public var count: Int? {
+            return _count
+        }
+        
+        public var _count: Int {
+            return container.count
+        }
+        
+        public var isAtEnd: Bool {
+            return currentIndex >= _count
+        }
+        
+        mutating func decodeNil() throws -> Bool {
+            
+            try assertNotEnd()
+            
+            // never optional, decode
+            return false
+        }
+        
+        mutating func decode(_ type: Bool.Type) throws -> Bool { fatalError("stub") }
+        mutating func decode(_ type: Int.Type) throws -> Int { fatalError("stub") }
+        mutating func decode(_ type: Int8.Type) throws -> Int8 { fatalError("stub") }
+        mutating func decode(_ type: Int16.Type) throws -> Int16 { fatalError("stub") }
+        mutating func decode(_ type: Int32.Type) throws -> Int32 { fatalError("stub") }
+        mutating func decode(_ type: Int64.Type) throws -> Int64 { fatalError("stub") }
+        mutating func decode(_ type: UInt.Type) throws -> UInt { fatalError("stub") }
+        mutating func decode(_ type: UInt8.Type) throws -> UInt8 { fatalError("stub") }
+        mutating func decode(_ type: UInt16.Type) throws -> UInt16 { fatalError("stub") }
+        mutating func decode(_ type: UInt32.Type) throws -> UInt32 { fatalError("stub") }
+        mutating func decode(_ type: UInt64.Type) throws -> UInt64 { fatalError("stub") }
+        mutating func decode(_ type: Float.Type) throws -> Float { fatalError("stub") }
+        mutating func decode(_ type: Double.Type) throws -> Double { fatalError("stub") }
+        mutating func decode(_ type: String.Type) throws -> String { fatalError("stub") }
+        
+        mutating func decode <T : Decodable> (_ type: T.Type) throws -> T {
+            
+            try assertNotEnd()
+            
+            self.decoder.codingPath.append(Index(intValue: self.currentIndex))
+            defer { self.decoder.codingPath.removeLast() }
+            
+            let attribute = self.container[self.currentIndex]
+            
+            let decoded = try self.decoder.unboxDecodable(attribute, as: type)
+            
+            self.currentIndex += 1
+            
+            return decoded
+        }
+        
+        mutating func nestedContainer<NestedKey>(keyedBy type: NestedKey.Type) throws -> Swift.KeyedDecodingContainer<NestedKey> where NestedKey : CodingKey {
+            
+            throw DecodingError.typeMismatch(type, DecodingError.Context(codingPath: codingPath, debugDescription: "Cannot decode \(type)"))
+        }
+        
+        mutating func nestedUnkeyedContainer() throws -> Swift.UnkeyedDecodingContainer {
+            
+            throw DecodingError.typeMismatch([Any].self, DecodingError.Context(codingPath: codingPath, debugDescription: "Cannot decode unkeyed container."))
+        }
+        
+        mutating func superDecoder() throws -> Swift.Decoder {
+            
+            // set coding key context
+            self.decoder.codingPath.append(Index(intValue: currentIndex))
+            defer { self.decoder.codingPath.removeLast() }
+            
+            // log
+            self.decoder.log?("Requested super decoder for path \"\(self.decoder.codingPathString)\"")
+            
+            // check for end of array
+            try assertNotEnd()
+            
+            // get attribute
+            let attribute = container[currentIndex]
+            
+            // increment counter
+            self.currentIndex += 1
+            
+            // create new decoder
+            let decoder = Decoder(referencing: .attribute(attribute),
+                                  at: self.decoder.codingPath,
+                                  userInfo: self.decoder.userInfo,
+                                  log: self.decoder.log)
+            
+            return decoder
+        }
+        
+        // MARK: Private Methods
+        
+        @inline(__always)
+        private func assertNotEnd() throws {
+            
+            guard isAtEnd == false else {
+                
+                throw DecodingError.valueNotFound(Any?.self, DecodingError.Context(codingPath: self.decoder.codingPath + [Index(intValue: self.currentIndex)], debugDescription: "Unkeyed container is at end."))
+            }
+        }
+    }
+}
+
+fileprivate extension NetlinkAttributeDecoder.AttributesUnkeyedDecodingContainer {
+    
+    struct Index: CodingKey {
+        
+        public let index: Int
+        
+        public init(intValue: Int) {
+            
+            self.index = intValue
+        }
+        
+        init?(stringValue: String) {
+            
+            return nil
+        }
+        
+        public var intValue: Int? {
+            return index
+        }
+        
+        public var stringValue: String {
+            return "\(index)"
         }
     }
 }

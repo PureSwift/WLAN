@@ -19,6 +19,16 @@ public struct NetlinkGenericFamilyIdentifier: RawRepresentable {
     }
 }
 
+// MARK: - Equatable
+
+extension NetlinkGenericFamilyIdentifier: Equatable {
+    
+    public static func == (lhs: NetlinkGenericFamilyIdentifier, rhs: NetlinkGenericFamilyIdentifier) -> Bool {
+        
+        return lhs.rawValue == rhs.rawValue
+    }
+}
+
 // MARK: - Static Identifiers
 
 public extension NetlinkGenericFamilyIdentifier {
