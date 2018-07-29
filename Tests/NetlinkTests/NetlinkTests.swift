@@ -228,18 +228,14 @@ final class NetlinkTests: XCTestCase {
         
         attributes.forEach { print(NL80211AttributeType(rawValue: $0.type.rawValue)!, Array($0.payload)) }
         
-        /*
         do {
+            let value = try decoder.decode(NL80211TriggerScanStatus.self, from: message)
             
-            var decoder = NetlinkAttributeDecoder()
-            decoder.log = { print("Decoder:", $0) }
-            let command = try decoder.decode(NL80211GetScanResultsCommand.self, from: message)
-            
-            XCTAssertEqual(command.interface, 3)
+            XCTAssertEqual(value.wiphy, 1)
+            XCTAssertEqual(value.interface, 4)
         }
             
         catch { XCTFail("Could not decode: \(error)"); return }
-        */
     }
     
     func testErrorMessage() {
