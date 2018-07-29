@@ -93,11 +93,12 @@ internal extension Netlink80211 {
             let interfaceAttribute = NetlinkAttribute(value: UInt32(interfaceIndex),
                                                       type: NetlinkAttributeType.NL80211.interfaceIndex)
             
-            let ssidAttribute = NetlinkAttribute(type: NetlinkAttributeType.NL80211.scanSSIDs, payload: Data())
+            let ssidAttribute = NetlinkAttribute(type: NetlinkAttributeType.NL80211.scanSSIDs,
+                                                 payload: NetlinkGenericMessage(type: NetlinkMessageType(), flags: 0, sequence: 0, process: 0, command: 0, version: 0, payload: Data()).data)
             
             // Setup which command to run.
             let message = NetlinkGenericMessage(type: NetlinkMessageType(rawValue: UInt16(driver.identifier.rawValue)),
-                                                flags: [.request, .acknowledgment],
+                                                flags: [.request],
                                                 sequence: 1,
                                                 process: getpid(),
                                                 command: NetlinkGenericCommand.NL80211.triggerScan,
@@ -111,7 +112,7 @@ internal extension Netlink80211 {
             repeat {
                 
                 // attempt to read messages
-                do { messages = try socket.recieve(NetlinkGenericMessage.self) }
+                do { messages += try socket.recieve(NetlinkGenericMessage.self) }
                 catch {
                     
                     #if os(Linux)
@@ -120,16 +121,17 @@ internal extension Netlink80211 {
                     
                     // try again
                     if let error = error as? POSIXError, error.code == .EBUSY {
-                        continue
+                        sleep(1)
                     } else {
                         throw error
                     }
                 }
                 
-            } while messages.isEmpty
+            } while (messages.contains(where: { $0.command == NetlinkGenericCommand.NL80211.newScanResults }) == false)
             
             print("Trigger scan:")
-            messages.forEach { print(Array($0.data)) }
+            messages.filter({ $0.command == NetlinkGenericCommand.NL80211.newScanResults })
+                .forEach { print(Array($0.data)) }
         }
         
         /// Issue NL80211_CMD_GET_SCAN.

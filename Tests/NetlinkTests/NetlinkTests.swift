@@ -18,6 +18,7 @@ final class NetlinkTests: XCTestCase {
         ("testResolveGenericFamilyCommand", testResolveGenericFamilyCommand),
         ("testResolveGenericFamilyResponse", testResolveGenericFamilyResponse),
         ("testGetScanResultsCommand", testGetScanResultsCommand),
+        ("testNewScanResults", testNewScanResults),
         ("testTriggerScanResponse", testTriggerScanResponse),
         ("testErrorMessage", testErrorMessage)
     ]
@@ -210,6 +211,46 @@ final class NetlinkTests: XCTestCase {
         }
             
         catch { XCTFail("Could not decode: \(error)"); return }
+    }
+    
+    func testNewScanResults() {
+        
+        /**
+         
+         Interface: wlx74da3826382c
+         Wireless Extension Version: 0
+         Wireless Extension Name: IEEE 802.11
+         Interface: 8
+         Trigger scan:
+         [180, 0, 0, 0, 28, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 34, 1, 0, 0, 8, 0, 1, 0, 4, 0, 0, 0, 8, 0, 3, 0, 8, 0, 0, 0, 12, 0, 153, 0, 1, 0, 0, 0, 4, 0, 0, 0, 24, 0, 45, 0, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 108, 0, 44, 0, 8, 0, 0, 0, 108, 9, 0, 0, 8, 0, 1, 0, 113, 9, 0, 0, 8, 0, 2, 0, 118, 9, 0, 0, 8, 0, 3, 0, 123, 9, 0, 0, 8, 0, 4, 0, 128, 9, 0, 0, 8, 0, 5, 0, 133, 9, 0, 0, 8, 0, 6, 0, 138, 9, 0, 0, 8, 0, 7, 0, 143, 9, 0, 0, 8, 0, 8, 0, 148, 9, 0, 0, 8, 0, 9, 0, 153, 9, 0, 0, 8, 0, 10, 0, 158, 9, 0, 0, 8, 0, 11, 0, 163, 9, 0, 0, 8, 0, 12, 0, 168, 9, 0, 0]
+         */
+        
+        let data = Data([180, 0, 0, 0, 28, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 34, 1, 0, 0, 8, 0, 1, 0, 4, 0, 0, 0, 8, 0, 3, 0, 8, 0, 0, 0, 12, 0, 153, 0, 1, 0, 0, 0, 4, 0, 0, 0, 24, 0, 45, 0, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 108, 0, 44, 0, 8, 0, 0, 0, 108, 9, 0, 0, 8, 0, 1, 0, 113, 9, 0, 0, 8, 0, 2, 0, 118, 9, 0, 0, 8, 0, 3, 0, 123, 9, 0, 0, 8, 0, 4, 0, 128, 9, 0, 0, 8, 0, 5, 0, 133, 9, 0, 0, 8, 0, 6, 0, 138, 9, 0, 0, 8, 0, 7, 0, 143, 9, 0, 0, 8, 0, 8, 0, 148, 9, 0, 0, 8, 0, 9, 0, 153, 9, 0, 0, 8, 0, 10, 0, 158, 9, 0, 0, 8, 0, 11, 0, 163, 9, 0, 0, 8, 0, 12, 0, 168, 9, 0, 0])
+        
+        var decoder = NetlinkAttributeDecoder()
+        decoder.log = { print("Decoder:", $0) }
+        
+        // parse response
+        guard let messages = try? NetlinkGenericMessage.from(data: data),
+            let message = messages.first,
+            let attributes = try? decoder.decode(message),
+            let wiphyAttribute = attributes.first(where: { $0.type == NetlinkAttributeType.NL80211.wiphy }),
+            let wiphy = UInt32(attributeData: wiphyAttribute.payload),
+            let interfaceAttribute = attributes.first(where: { $0.type == NetlinkAttributeType.NL80211.interfaceIndex }),
+            let interface = UInt32(attributeData: interfaceAttribute.payload)
+            else { XCTFail("Could not parse message from data"); return }
+        
+        XCTAssertEqual(message.data, data)
+        XCTAssertEqual(message.length, 180)
+        XCTAssertEqual(Int(message.length), data.count)
+        XCTAssertEqual(message.type.rawValue, 28) // driver ID
+        XCTAssertEqual(message.command.rawValue, NetlinkGenericCommand.NL80211.newScanResults.rawValue)
+        XCTAssertEqual(message.version.rawValue, 1)
+        XCTAssertEqual(message.flags, 0)
+        XCTAssertEqual(message.sequence, 0)
+        
+        XCTAssertEqual(wiphy, 4)
+        XCTAssertEqual(interface, 8)
     }
     
     func testErrorMessage() {
