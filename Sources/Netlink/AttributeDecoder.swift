@@ -87,25 +87,23 @@ internal extension NetlinkAttributeDecoder {
             log?("Requested container keyed by \(type) for path \"\(codingPathString)\"")
             
             let container = self.stack.top
-            /*
+            
             switch container {
                 
+            case let .attributes(attributes):
+                
+                let keyedContainer = AttributesKeyedDecodingContainer<Key>(referencing: self, wrapping: attributes)
+                
+                return KeyedDecodingContainer(keyedContainer)
+                
             case let .attribute(attribute):
                 
-                return AttributesUnkeyedDecodingContainer(referencing: self, wrapping: attributes)
+                let attributes = try NetlinkAttribute.from(data: attribute.payload)
                 
-            case let .attribute(attribute):
+                let keyedContainer = AttributesKeyedDecodingContainer<Key>(referencing: self, wrapping: attributes)
                 
+                return KeyedDecodingContainer(keyedContainer)
             }
-            */
-            guard case let .attributes(attributes) = container else {
-                
-                throw DecodingError.typeMismatch(KeyedDecodingContainer<Key>.self, DecodingError.Context(codingPath: self.codingPath, debugDescription: "Cannot get keyed decoding container, invalid top container \(container)."))
-            }
-            
-            let keyedContainer = AttributesKeyedDecodingContainer<Key>(referencing: self, wrapping: attributes)
-            
-            return KeyedDecodingContainer(keyedContainer)
         }
         
         func unkeyedContainer() throws -> UnkeyedDecodingContainer {
@@ -176,25 +174,8 @@ fileprivate extension NetlinkAttributeDecoder.Decoder {
     /// Attempt to decode native value to expected type.
     func unboxDecodable <T: Decodable> (_ attribute: NetlinkAttribute, as type: T.Type) throws -> T {
         
-        // push and decode container
-        let container: NetlinkAttributeDecoder.Stack.Container
-        
-        // check if attribute for single value or nested attribute
-        if attribute.type.contains(.nested) {
-            
-            let nestedAttributes = try NetlinkAttribute.from(data: attribute.payload)
-            
-            // nested attribute
-            container = .attributes(nestedAttributes)
-            
-        } else {
-            
-            // single value container for attributes
-            container = .attribute(attribute)
-        }
-        
         // push container to stack and decode using Decodable implementation
-        stack.push(container)
+        stack.push(.attribute(attribute))
         let decoded = try T(from: self)
         stack.pop()
         
