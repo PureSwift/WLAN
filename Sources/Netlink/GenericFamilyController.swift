@@ -44,9 +44,9 @@ public extension NetlinkGenericFamilyController {
     
     public struct MulticastGroup {
         
-        public let name: NetlinkGenericGroupName
+        public let name: NetlinkGenericMulticastGroupName
         
-        public let identifier: NetlinkGenericGroupIdentifier
+        public let identifier: NetlinkGenericMulticastGroupIdentifier
     }
 }
 
@@ -254,8 +254,8 @@ extension NetlinkGenericFamilyController.MulticastGroup: Codable {
         
         let container = try decoder.container(keyedBy: CodingKeys.self)
         
-        self.identifier = try container.decode(NetlinkGenericGroupIdentifier.self, forKey: .identifier)
-        self.name = try container.decode(NetlinkGenericGroupName.self, forKey: .name)
+        self.identifier = try container.decode(NetlinkGenericMulticastGroupIdentifier.self, forKey: .identifier)
+        self.name = try container.decode(NetlinkGenericMulticastGroupName.self, forKey: .name)
     }
     
     public func encode(to encoder: Encoder) throws {

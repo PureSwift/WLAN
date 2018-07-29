@@ -12,7 +12,7 @@ import Foundation
     import Codable
 #endif
 
-public struct NetlinkGenericGroupName: RawRepresentable {
+public struct NetlinkGenericMulticastGroupName: RawRepresentable {
     
     public let rawValue: String
     
@@ -24,9 +24,9 @@ public struct NetlinkGenericGroupName: RawRepresentable {
 
 // MARK: - Equatable
 
-extension NetlinkGenericGroupName: Equatable {
+extension NetlinkGenericMulticastGroupName: Equatable {
     
-    public static func == (lhs: NetlinkGenericGroupName, rhs: NetlinkGenericGroupName) -> Bool {
+    public static func == (lhs: NetlinkGenericMulticastGroupName, rhs: NetlinkGenericMulticastGroupName) -> Bool {
         
         return lhs.rawValue == rhs.rawValue
     }
@@ -34,7 +34,7 @@ extension NetlinkGenericGroupName: Equatable {
 
 // MARK: - Codable
 
-extension NetlinkGenericGroupName: Codable {
+extension NetlinkGenericMulticastGroupName: Codable {
     
     public init(from decoder: Decoder) throws {
         

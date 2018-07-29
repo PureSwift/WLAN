@@ -80,7 +80,7 @@ internal extension Netlink80211 {
         func triggerScan(with ssid: SSID? = nil) throws {
             
             // register for `scan` multicast group
-            guard let scanGroup = driver.multicastGroups.first(where: { $0.name.rawValue == "scan" })
+            guard let scanGroup = driver.multicastGroups.first(where: { $0.name == NetlinkGenericMulticastGroupName.NL80211.scan })
                 else { throw Error.scanningNotSupported }
             
             // subscribe to group
@@ -102,6 +102,11 @@ internal extension Netlink80211 {
             
             // Send the message.
             try socket.send(message.data)
+            
+            let messages = try socket.recieve(NetlinkGenericMessage.self)
+            
+            print("Trigger scan:")
+            messages.forEach { print(Array($0.data)) }
             
             // TODO: verify kernel answer
             sleep(3)
@@ -134,7 +139,8 @@ internal extension Netlink80211 {
             guard let response = messages.first
                 else { throw Error.invalidResponse }
             
-            
+            print("Scan results:")
+            print(Array(response.data))
             
             return networks
         }

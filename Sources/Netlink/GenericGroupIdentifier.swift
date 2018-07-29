@@ -14,7 +14,7 @@ import CLinuxWLAN
 #endif
 
 /// Netlink Generic Family Group Identifier
-public struct NetlinkGenericGroupIdentifier: RawRepresentable {
+public struct NetlinkGenericMulticastGroupIdentifier: RawRepresentable {
     
     public let rawValue: Int32
     
@@ -26,9 +26,9 @@ public struct NetlinkGenericGroupIdentifier: RawRepresentable {
 
 // MARK: - Equatable
 
-extension NetlinkGenericGroupIdentifier: Equatable {
+extension NetlinkGenericMulticastGroupIdentifier: Equatable {
     
-    public static func == (lhs: NetlinkGenericGroupIdentifier, rhs: NetlinkGenericGroupIdentifier) -> Bool {
+    public static func == (lhs: NetlinkGenericMulticastGroupIdentifier, rhs: NetlinkGenericMulticastGroupIdentifier) -> Bool {
         
         return lhs.rawValue == rhs.rawValue
     }
@@ -36,7 +36,7 @@ extension NetlinkGenericGroupIdentifier: Equatable {
 
 // MARK: - Codable
 
-extension NetlinkGenericGroupIdentifier: Codable {
+extension NetlinkGenericMulticastGroupIdentifier: Codable {
     
     public init(from decoder: Decoder) throws {
         

@@ -17,7 +17,7 @@ final class NetlinkTests: XCTestCase {
         ("testResolveGenericFamilyCommand", testResolveGenericFamilyCommand),
         ("testResolveGenericFamilyResponse", testResolveGenericFamilyResponse),
         ("testGetScanResultsCommand", testGetScanResultsCommand),
-        ("testTriggerScanResultsResponse", testTriggerScanResultsResponse),
+        ("testTriggerScanResponse", testTriggerScanResponse),
         ("testErrorMessage", testErrorMessage)
     ]
     
@@ -189,11 +189,29 @@ final class NetlinkTests: XCTestCase {
         XCTAssertEqual(NetlinkGenericMessage(data: Data([28, 0, 0, 0, 28, 0, 5, 5, 96, 138, 91, 91, 237, 32, 0, 92, 32, 0, 0, 0, 8, 0, 3, 0, 3, 0, 0, 0]))?.flags, [.dump, .acknowledgment, .request])
     }
     
-    func testTriggerScanResultsResponse() {
+    func testTriggerScanResponse() {
+        
+        /**
+         WIPHY [1, 0, 0, 0]
+         IFINDEX [4, 0, 0, 0]
+         WDEV [1, 0, 0, 0, 1, 0, 0, 0]
+         SCAN_SSIDS []
+         SCAN_FREQUENCIES [8, 0, 0, 0, 108, 9, 0, 0, 8, 0, 1, 0, 113, 9, 0, 0, 8, 0, 2, 0, 118, 9, 0, 0, 8, 0, 3, 0, 123, 9, 0, 0, 8, 0, 4, 0, 128, 9, 0, 0, 8, 0, 5, 0, 133, 9, 0, 0, 8, 0, 6, 0, 138, 9, 0, 0, 8, 0, 7, 0, 143, 9, 0, 0, 8, 0, 8, 0, 148, 9, 0, 0, 8, 0, 9, 0, 153, 9, 0, 0, 8, 0, 10, 0, 158, 9, 0, 0, 8, 0, 11, 0, 163, 9, 0, 0, 8, 0, 12, 0, 168, 9, 0, 0]
+         */
         
         let data = Data([160, 0, 0, 0, 28, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 33, 1, 0, 0, 8, 0, 1, 0, 1, 0, 0, 0, 8, 0, 3, 0, 4, 0, 0, 0, 12, 0, 153, 0, 1, 0, 0, 0, 1, 0, 0, 0, 4, 0, 45, 0, 108, 0, 44, 0, 8, 0, 0, 0, 108, 9, 0, 0, 8, 0, 1, 0, 113, 9, 0, 0, 8, 0, 2, 0, 118, 9, 0, 0, 8, 0, 3, 0, 123, 9, 0, 0, 8, 0, 4, 0, 128, 9, 0, 0, 8, 0, 5, 0, 133, 9, 0, 0, 8, 0, 6, 0, 138, 9, 0, 0, 8, 0, 7, 0, 143, 9, 0, 0, 8, 0, 8, 0, 148, 9, 0, 0, 8, 0, 9, 0, 153, 9, 0, 0, 8, 0, 10, 0, 158, 9, 0, 0, 8, 0, 11, 0, 163, 9, 0, 0, 8, 0, 12, 0, 168, 9, 0, 0])
         
-        guard let message = NetlinkGenericMessage(data: data)
+        var decoder = NetlinkAttributeDecoder()
+        decoder.log = { print("Decoder:", $0) }
+        
+        // parse response
+        guard let messages = try? NetlinkGenericMessage.from(data: data),
+            let message = messages.first,
+            let attributes = try? decoder.decode(message),
+            let wiphyAttribute = attributes.first(where: { $0.type == NetlinkAttributeType.NL80211.wiphy }),
+            let wiphy = UInt32(attributeData: wiphyAttribute.payload),
+            let interfaceAttribute = attributes.first(where: { $0.type == NetlinkAttributeType.NL80211.interfaceIndex }),
+            let interface = UInt32(attributeData: interfaceAttribute.payload)
             else { XCTFail("Could not parse message from data"); return }
         
         XCTAssertEqual(message.data, data)
@@ -205,6 +223,12 @@ final class NetlinkTests: XCTestCase {
         XCTAssertEqual(message.flags, 0)
         XCTAssertEqual(message.sequence, 0)
         
+        XCTAssertEqual(wiphy, 1)
+        XCTAssertEqual(interface, 4)
+        
+        attributes.forEach { print(NL80211AttributeType(rawValue: $0.type.rawValue)!, Array($0.payload)) }
+        
+        /*
         do {
             
             var decoder = NetlinkAttributeDecoder()
@@ -215,6 +239,7 @@ final class NetlinkTests: XCTestCase {
         }
             
         catch { XCTFail("Could not decode: \(error)"); return }
+        */
     }
     
     func testErrorMessage() {
@@ -249,4 +274,246 @@ final class NetlinkTests: XCTestCase {
         XCTAssertEqual(error.error.code, .EOPNOTSUPP)
         #endif
     }
+}
+
+enum NL80211AttributeType: UInt16 {
+    /* don't change the order or add anything between, this is ABI! */
+    case UNSPEC
+    case WIPHY
+    case WIPHY_NAME
+    case IFINDEX
+    case IFNAME
+    case IFTYPE
+    case MAC
+    case KEY_DATA
+    case KEY_IDX
+    case KEY_CIPHER
+    case KEY_SEQ
+    case KEY_DEFAULT
+    case BEACON_INTERVAL
+    case DTIM_PERIOD
+    case BEACON_HEAD
+    case BEACON_TAIL
+    case STA_AID
+    case STA_FLAGS
+    case STA_LISTEN_INTERVAL
+    case STA_SUPPORTED_RATES
+    case STA_VLAN
+    case STA_INFO
+    case WIPHY_BANDS
+    case MNTR_FLAGS
+    case MESH_ID
+    case STA_PLINK_ACTION
+    case MPATH_NEXT_HOP
+    case MPATH_INFO
+    case BSS_CTS_PROT
+    case BSS_SHORT_PREAMBLE
+    case BSS_SHORT_SLOT_TIME
+    case HT_CAPABILITY
+    case SUPPORTED_IFTYPES
+    case REG_ALPHA2
+    case REG_RULES
+    case MESH_CONFIG
+    case BSS_BASIC_RATES
+    case WIPHY_TXQ_PARAMS
+    case WIPHY_FREQ
+    case WIPHY_CHANNEL_TYPE
+    case KEY_DEFAULT_MGMT
+    case MGMT_SUBTYPE
+    case IE
+    case MAX_NUM_SCAN_SSIDS
+    case SCAN_FREQUENCIES
+    case SCAN_SSIDS
+    case GENERATION /* replaces old SCAN_GENERATION */
+    case BSS
+    case REG_INITIATOR
+    case REG_TYPE
+    case SUPPORTED_COMMANDS
+    case FRAME
+    case SSID
+    case AUTH_TYPE
+    case REASON_CODE
+    case KEY_TYPE
+    case MAX_SCAN_IE_LEN
+    case CIPHER_SUITES
+    case FREQ_BEFORE
+    case FREQ_AFTER
+    case FREQ_FIXED
+    case WIPHY_RETRY_SHORT
+    case WIPHY_RETRY_LONG
+    case WIPHY_FRAG_THRESHOLD
+    case WIPHY_RTS_THRESHOLD
+    case TIMED_OUT
+    case USE_MFP
+    case STA_FLAGS2
+    case CONTROL_PORT
+    case TESTDATA
+    case PRIVACY
+    case DISCONNECTED_BY_AP
+    case STATUS_CODE
+    case CIPHER_SUITES_PAIRWISE
+    case CIPHER_SUITE_GROUP
+    case WPA_VERSIONS
+    case AKM_SUITES
+    case REQ_IE
+    case RESP_IE
+    case PREV_BSSID
+    case KEY
+    case KEYS
+    case PID
+    case _4ADDR
+    case SURVEY_INFO
+    case PMKID
+    case MAX_NUM_PMKIDS
+    case DURATION
+    case COOKIE
+    case WIPHY_COVERAGE_CLASS
+    case TX_RATES
+    case FRAME_MATCH
+    case ACK
+    case PS_STATE
+    case CQM
+    case LOCAL_STATE_CHANGE
+    case AP_ISOLATE
+    case WIPHY_TX_POWER_SETTING
+    case WIPHY_TX_POWER_LEVEL
+    case TX_FRAME_TYPES
+    case RX_FRAME_TYPES
+    case FRAME_TYPE
+    case CONTROL_PORT_ETHERTYPE
+    case CONTROL_PORT_NO_ENCRYPT
+    case SUPPORT_IBSS_RSN
+    case WIPHY_ANTENNA_TX
+    case WIPHY_ANTENNA_RX
+    case MCAST_RATE
+    case OFFCHANNEL_TX_OK
+    case BSS_HT_OPMODE
+    case KEY_DEFAULT_TYPES
+    case MAX_REMAIN_ON_CHANNEL_DURATION
+    case MESH_SETUP
+    case WIPHY_ANTENNA_AVAIL_TX
+    case WIPHY_ANTENNA_AVAIL_RX
+    case SUPPORT_MESH_AUTH
+    case STA_PLINK_STATE
+    case WOWLAN_TRIGGERS
+    case WOWLAN_TRIGGERS_SUPPORTED
+    case SCHED_SCAN_INTERVAL
+    case INTERFACE_COMBINATIONS
+    case SOFTWARE_IFTYPES
+    case REKEY_DATA
+    case MAX_NUM_SCHED_SCAN_SSIDS
+    case MAX_SCHED_SCAN_IE_LEN
+    case SCAN_SUPP_RATES
+    case HIDDEN_SSID
+    case IE_PROBE_RESP
+    case IE_ASSOC_RESP
+    case STA_WME
+    case SUPPORT_AP_UAPSD
+    case ROAM_SUPPORT
+    case SCHED_SCAN_MATCH
+    case MAX_MATCH_SETS
+    case PMKSA_CANDIDATE
+    case TX_NO_CCK_RATE
+    case TDLS_ACTION
+    case TDLS_DIALOG_TOKEN
+    case TDLS_OPERATION
+    case TDLS_SUPPORT
+    case TDLS_EXTERNAL_SETUP
+    case DEVICE_AP_SME
+    case DONT_WAIT_FOR_ACK
+    case FEATURE_FLAGS
+    case PROBE_RESP_OFFLOAD
+    case PROBE_RESP
+    case DFS_REGION
+    case DISABLE_HT
+    case HT_CAPABILITY_MASK
+    case NOACK_MAP
+    case INACTIVITY_TIMEOUT
+    case RX_SIGNAL_DBM
+    case BG_SCAN_PERIOD
+    case WDEV
+    case USER_REG_HINT_TYPE
+    case CONN_FAILED_REASON
+    case SAE_DATA
+    case VHT_CAPABILITY
+    case SCAN_FLAGS
+    case CHANNEL_WIDTH
+    case CENTER_FREQ1
+    case CENTER_FREQ2
+    case P2P_CTWINDOW
+    case P2P_OPPPS
+    case LOCAL_MESH_POWER_MODE
+    case ACL_POLICY
+    case MAC_ADDRS
+    case MAC_ACL_MAX
+    case RADAR_EVENT
+    case EXT_CAPA
+    case EXT_CAPA_MASK
+    case STA_CAPABILITY
+    case STA_EXT_CAPABILITY
+    case PROTOCOL_FEATURES
+    case SPLIT_WIPHY_DUMP
+    case DISABLE_VHT
+    case VHT_CAPABILITY_MASK
+    case MDID
+    case IE_RIC
+    case CRIT_PROT_ID
+    case MAX_CRIT_PROT_DURATION
+    case PEER_AID
+    case COALESCE_RULE
+    case CH_SWITCH_COUNT
+    case CH_SWITCH_BLOCK_TX
+    case CSA_IES
+    case CSA_C_OFF_BEACON
+    case CSA_C_OFF_PRESP
+    case RXMGMT_FLAGS
+    case STA_SUPPORTED_CHANNELS
+    case STA_SUPPORTED_OPER_CLASSES
+    case HANDLE_DFS
+    case SUPPORT_5_MHZ
+    case SUPPORT_10_MHZ
+    case OPMODE_NOTIF
+    case VENDOR_ID
+    case VENDOR_SUBCMD
+    case VENDOR_DATA
+    case VENDOR_EVENTS
+    case QOS_MAP
+    case MAC_HINT
+    case WIPHY_FREQ_HINT
+    case MAX_AP_ASSOC_STA
+    case TDLS_PEER_CAPABILITY
+    case SOCKET_OWNER
+    case CSA_C_OFFSETS_TX
+    case MAX_CSA_COUNTERS
+    case TDLS_INITIATOR
+    case USE_RRM
+    case WIPHY_DYN_ACK
+    case TSID
+    case USER_PRIO
+    case ADMITTED_TIME
+    case SMPS_MODE
+    case OPER_CLASS
+    case MAC_MASK
+    case WIPHY_SELF_MANAGED_REG
+    case EXT_FEATURES
+    case SURVEY_RADIO_STATS
+    case NETNS_FD
+    case SCHED_SCAN_DELAY
+    case REG_INDOOR
+    case MAX_NUM_SCHED_SCAN_PLANS
+    case MAX_SCAN_PLAN_INTERVAL
+    case MAX_SCAN_PLAN_ITERATIONS
+    case SCHED_SCAN_PLANS
+    case PBSS
+    case BSS_SELECT
+    case STA_SUPPORT_P2P_PS
+    case PAD
+    case IFTYPE_EXT_CAPA
+    case MU_MIMO_GROUP_DATA
+    case MU_MIMO_FOLLOW_MAC_ADDR
+    case SCAN_START_TIME_TSF
+    case SCAN_START_TIME_TSF_BSSID
+    case MEASUREMENT_DURATION
+    case MEASUREMENT_DURATION_MANDATORY
+    case MESH_PEER_AID
 }

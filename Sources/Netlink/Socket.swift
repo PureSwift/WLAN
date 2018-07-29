@@ -56,7 +56,7 @@ public final class NetlinkSocket {
     
     // MARK: - Methods
     
-    public func subscribe(to group: NetlinkGenericGroupIdentifier) throws {
+    public func subscribe(to group: NetlinkGenericMulticastGroupIdentifier) throws {
         
         var groupValue = group.rawValue
         
@@ -69,7 +69,7 @@ public final class NetlinkSocket {
         }) == 0 else { throw POSIXError.fromErrno! }
     }
     
-    public func unsubscribe(from group: NetlinkGenericGroupIdentifier) throws {
+    public func unsubscribe(from group: NetlinkGenericMulticastGroupIdentifier) throws {
         
         var groupValue = group.rawValue
         
