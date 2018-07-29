@@ -60,7 +60,15 @@ public struct NetlinkErrorMessage: Error, NetlinkMessageProtocol {
     public var process: pid_t
     
     /// Message payload.
-    public var error: POSIXError
+    public var error: POSIXError? {
+        
+        guard let errorCode = POSIXErrorCode(rawValue: -errorCode)
+            else { return nil }
+        
+        return POSIXError(code: errorCode)
+    }
+    
+    internal var errorCode: Int32
     
     /// Original request
     public var request: NetlinkMessageHeader
@@ -73,14 +81,14 @@ public struct NetlinkErrorMessage: Error, NetlinkMessageProtocol {
     public init(flags: NetlinkMessageFlag = 0,
                 sequence: UInt32 = 0,
                 process: pid_t = 0,
-                error: POSIXError,
+                error: POSIXError? = nil,
                 request: NetlinkMessageHeader,
                 payload: Data = Data()) {
         
         self.flags = flags
         self.sequence = sequence
         self.process = process
-        self.error = error
+        self.errorCode = error?.code.rawValue ?? 0
         self.request = request
         self.payload = payload
     }
@@ -109,12 +117,7 @@ public extension NetlinkErrorMessage {
         self.process = pid_t(bytes: (data[12], data[13], data[14], data[15]))
         
         // error code
-        let errorCode = Int32(bytes: (data[16], data[17], data[18], data[19]))
-        
-        guard let error = POSIXErrorCode(rawValue: -errorCode)
-            else { return nil }
-        
-        self.error = POSIXError(code: error)
+        self.errorCode = Int32(bytes: (data[16], data[17], data[18], data[19]))
         
         // request header
         guard let header = NetlinkMessageHeader(data: Data(data[20 ..< NetlinkErrorMessage.length]))
@@ -152,10 +155,10 @@ public extension NetlinkErrorMessage {
             process.bytes.1,
             process.bytes.2,
             process.bytes.3,
-            error.code.rawValue.bytes.0,
-            error.code.rawValue.bytes.1,
-            error.code.rawValue.bytes.2,
-            error.code.rawValue.bytes.3
+            errorCode.bytes.0,
+            errorCode.bytes.1,
+            errorCode.bytes.2,
+            errorCode.bytes.3
             ]) + request.data + payload
     }
 }

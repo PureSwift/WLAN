@@ -70,6 +70,11 @@ public struct NetlinkAttributeDecoder {
             
             let length = Int(UInt16(bytes: (data[index], data[index + 1])))
             
+            guard length > 0  else {
+                
+                throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: codingPath, debugDescription: "Could not decode attribute at index \(index)"))
+            }
+            
             let actualLength = length.extendTo4Bytes
             
             let attributeData = Data(data[index ..< index + actualLength])

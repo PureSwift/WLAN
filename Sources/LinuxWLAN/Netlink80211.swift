@@ -87,13 +87,15 @@ internal extension Netlink80211 {
             try socket.subscribe(to: scanGroup.identifier)
             defer { try? socket.unsubscribe(from: scanGroup.identifier) }
             
+            print("Interface:", interfaceIndex)
+            
             // Add message attribute, specify which interface to use.
             let attribute = NetlinkAttribute(value: UInt32(interfaceIndex),
                                              type: NetlinkAttributeType.NL80211.interfaceIndex)
             
             // Setup which command to run.
             let message = NetlinkGenericMessage(type: NetlinkMessageType(rawValue: UInt16(driver.identifier.rawValue)),
-                                                flags: [.request],
+                                                flags: [.request, .acknowledgment],
                                                 sequence: 0,
                                                 process: getpid(),
                                                 command: NetlinkGenericCommand.NL80211.triggerScan,
@@ -103,13 +105,29 @@ internal extension Netlink80211 {
             // Send the message.
             try socket.send(message.data)
             
-            let messages = try socket.recieve(NetlinkGenericMessage.self)
+            var messages = [NetlinkGenericMessage]()
+            repeat {
+                
+                // attempt to read messages
+                do { messages = try socket.recieve(NetlinkGenericMessage.self) }
+                catch {
+                    
+                    #if os(Linux)
+                    typealias POSIXError = Netlink.POSIXError
+                    #endif
+                    
+                    // try again
+                    if let error = error as? POSIXError, error.code == .EBUSY {
+                        continue
+                    } else {
+                        throw error
+                    }
+                }
+                
+            } while messages.isEmpty
             
             print("Trigger scan:")
             messages.forEach { print(Array($0.data)) }
-            
-            // TODO: verify kernel answer
-            sleep(3)
         }
         
         /// Issue NL80211_CMD_GET_SCAN.
@@ -123,9 +141,9 @@ internal extension Netlink80211 {
             
             // Setup which command to run.
             let message = NetlinkGenericMessage(type: NetlinkMessageType(rawValue: UInt16(driver.identifier.rawValue)),
-                                                flags: [.request, .dump],
+                                                flags: [.request],
                                                 sequence: 0,
-                                                process: getpid(),
+                                                process: 0,
                                                 command: NetlinkGenericCommand.NL80211.getScanResults,
                                                 version: 0,
                                                 payload: attribute.paddedData)

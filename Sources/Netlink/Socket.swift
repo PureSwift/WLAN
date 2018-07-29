@@ -111,7 +111,14 @@ public final class NetlinkSocket {
         if let errorMessages = try? NetlinkErrorMessage.from(data: data),
             let errorMessage = errorMessages.first {
             
-            throw errorMessage.error
+            if let posixError = errorMessage.error {
+                
+                throw posixError
+                
+            } else {
+                
+                throw errorMessage
+            }
             
         } else if let messages = try? T.from(data: data) {
             
