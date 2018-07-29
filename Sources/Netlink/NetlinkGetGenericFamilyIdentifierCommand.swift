@@ -36,7 +36,7 @@ extension NetlinkGetGenericFamilyIdentifierCommand: Codable {
         init?(attribute: NetlinkAttributeType) {
             
             switch attribute {
-            case NetlinkAttributeType.Generic.familyName:
+            case NetlinkAttributeType.Generic.Controller.familyName:
                 self = .name
             default:
                 return nil
@@ -47,7 +47,7 @@ extension NetlinkGetGenericFamilyIdentifierCommand: Codable {
             
             switch self {
             case .name:
-                return NetlinkAttributeType.Generic.familyName
+                return NetlinkAttributeType.Generic.Controller.familyName
             }
         }
     }
@@ -82,7 +82,7 @@ public extension NetlinkSocket {
         //let command = NetlinkGetGenericFamilyIdentifierCommand(name: name)
         
         let attribute = NetlinkAttribute(value: name.rawValue,
-                                         type: NetlinkAttributeType.Generic.familyName)
+                                         type: NetlinkAttributeType.Generic.Controller.familyName)
         
         let message = NetlinkGenericMessage(type: NetlinkMessageType(rawValue: UInt16(GENL_ID_CTRL)),
                                             flags: .request,
@@ -100,10 +100,10 @@ public extension NetlinkSocket {
         guard let messages = try? NetlinkGenericMessage.from(data: recievedData),
             let response = messages.first,
             let attributes = try? NetlinkAttribute.from(message: response),
-            let identifierAttribute = attributes.first(where: { $0.type == NetlinkAttributeType.Generic.familyIdentifier }),
+            let identifierAttribute = attributes.first(where: { $0.type == NetlinkAttributeType.Generic.Controller.familyIdentifier }),
             let identifier = UInt16(attributeData: identifierAttribute.payload)
             else { throw NetlinkSocketError.invalidData(recievedData) }
         
-        return NetlinkGenericFamilyIdentifier(rawValue: Int32(identifier))
+        return NetlinkGenericFamilyIdentifier(rawValue: identifier)
     }
 }

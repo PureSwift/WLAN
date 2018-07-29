@@ -81,12 +81,18 @@ final class NetlinkTests: XCTestCase {
         guard let messages = try? NetlinkGenericMessage.from(data: data),
             let response = messages.first,
             let attributes = try? NetlinkAttribute.from(message: response),
-            let identifierAttribute = attributes.first(where: { $0.type == NetlinkAttributeType.Generic.familyIdentifier }),
+            let identifierAttribute = attributes.first(where: { $0.type == NetlinkAttributeType.Generic.Controller.familyIdentifier }),
             let identifier = UInt16(attributeData: identifierAttribute.payload),
-            let nameAttribute = attributes.first(where: { $0.type == NetlinkAttributeType.Generic.familyName }),
+            let nameAttribute = attributes.first(where: { $0.type == NetlinkAttributeType.Generic.Controller.familyName }),
             let nameRawValue = String(attributeData: nameAttribute.payload),
-            let versionAttribute = attributes.first(where: { $0.type == NetlinkAttributeType.Generic.version }),
-            let version = UInt32(attributeData: versionAttribute.payload)
+            let versionAttribute = attributes.first(where: { $0.type == NetlinkAttributeType.Generic.Controller.version }),
+            let version = UInt32(attributeData: versionAttribute.payload),
+            let headerSizeAttribute = attributes.first(where: { $0.type == NetlinkAttributeType.Generic.Controller.headerSize }),
+            let headerSize = UInt32(attributeData: headerSizeAttribute.payload),
+            let maxAttributesAttribute = attributes.first(where: { $0.type == NetlinkAttributeType.Generic.Controller.maxAttributes }),
+            let maxAttributes = UInt32(attributeData: maxAttributesAttribute.payload),
+            let operationsAttribute = attributes.first(where: { $0.type == NetlinkAttributeType.Generic.Controller.operations }),
+            let operationsArrayAttributes = try? NetlinkAttribute.from(data: operationsAttribute.payload)
             else { XCTFail("Could not parse"); return }
         
         let name = NetlinkGenericFamilyName(rawValue: nameRawValue)
@@ -96,8 +102,23 @@ final class NetlinkTests: XCTestCase {
         XCTAssertEqual(identifier, 28)
         XCTAssertEqual(name, .nl80211)
         XCTAssertEqual(version, 1)
+        XCTAssertEqual(headerSize, 0)
+        XCTAssertEqual(maxAttributes, 259)
+        XCTAssertEqual(operationsArrayAttributes.count, 98)
+        //XCTAssert(operationsAttribute.type.contains(.nested))
         
-        print(versionAttribute.payload.map { $0 })
+        // decode
+        do {
+            
+            var decoder = NetlinkAttributeDecoder()
+            decoder.log = { print("Decoder:", $0) }
+            let command = try decoder.decode(NetlinkGenericFamilyController.self, from: response)
+            
+            XCTAssertEqual(command.name, .nl80211)
+            XCTAssertEqual(command.identifier, 28)
+        }
+            
+        catch { XCTFail("Could not decode: \(error)"); return }
     }
     
     func testGetScanResultsCommand() {

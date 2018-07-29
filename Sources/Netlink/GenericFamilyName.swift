@@ -61,6 +61,8 @@ extension NetlinkGenericFamilyName: Codable {
     }
 }
 
+// MARK: - Static Members
+
 public extension NetlinkGenericFamilyName {
     
     public static let nl80211 = NetlinkGenericFamilyName(rawValue: NL80211_GENL_NAME)
