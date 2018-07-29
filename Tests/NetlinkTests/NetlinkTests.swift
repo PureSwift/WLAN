@@ -112,10 +112,10 @@ final class NetlinkTests: XCTestCase {
             
             var decoder = NetlinkAttributeDecoder()
             decoder.log = { print("Decoder:", $0) }
-            let command = try decoder.decode(NetlinkGenericFamilyController.self, from: response)
+            let value = try decoder.decode(NetlinkGenericFamilyController.self, from: response)
             
-            XCTAssertEqual(command.name, .nl80211)
-            XCTAssertEqual(command.identifier.rawValue, 28)
+            XCTAssertEqual(value.name, .nl80211)
+            XCTAssertEqual(value.identifier.rawValue, 28)
         }
             
         catch { XCTFail("Could not decode: \(error)"); return }
