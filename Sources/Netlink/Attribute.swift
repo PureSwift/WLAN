@@ -116,9 +116,34 @@ public extension NetlinkAttribute {
         
         self.init(copying: value, type: type)
     }
+    
+    init(value: Int8, type: NetlinkAttributeType) {
+        
+        self.init(copying: value, type: type)
+    }
+    
+    init(value: Int16, type: NetlinkAttributeType) {
+        
+        self.init(copying: value, type: type)
+    }
+    
+    init(value: Int32, type: NetlinkAttributeType) {
+        
+        self.init(copying: value, type: type)
+    }
+    
+    init(value: Int64, type: NetlinkAttributeType) {
+        
+        self.init(copying: value, type: type)
+    }
 }
 
 public extension NetlinkAttribute {
+    
+    init(value: Bool, type: NetlinkAttributeType) {
+        
+        self.init(value: UInt8(value ? 1 : 0), type: type)
+    }
     
     init(value: String, type: NetlinkAttributeType) {
         

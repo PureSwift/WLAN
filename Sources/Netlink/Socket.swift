@@ -56,6 +56,33 @@ public final class NetlinkSocket {
     
     // MARK: - Methods
     
+    public func subscribe(to group: NetlinkGenericGroupIdentifier) throws {
+        
+        var groupValue = group.rawValue
+        
+        guard withUnsafePointer(to: &groupValue, { (pointer: UnsafePointer<CInt>) in
+            setsockopt(internalSocket,
+                       SOL_NETLINK,
+                       NETLINK_ADD_MEMBERSHIP,
+                       UnsafeRawPointer(pointer),
+                       socklen_t(MemoryLayout<CInt>.size))
+        }) == 0 else { throw POSIXError.fromErrno! }
+        
+    }
+    
+    public func unsubscribe(from group: NetlinkGenericGroupIdentifier) throws {
+        
+        var groupValue = group.rawValue
+        
+        guard withUnsafePointer(to: &groupValue, { (pointer: UnsafePointer<CInt>) in
+            setsockopt(internalSocket,
+                       SOL_NETLINK,
+                       NETLINK_DROP_MEMBERSHIP,
+                       UnsafeRawPointer(pointer),
+                       socklen_t(MemoryLayout<CInt>.size))
+        }) == 0 else { throw POSIXError.fromErrno! }
+    }
+    
     public func send(_ data: Data) throws {
         
         var address = sockaddr_nl(nl_family: __kernel_sa_family_t(AF_NETLINK),
@@ -134,15 +161,3 @@ public enum NetlinkSocketError: Error {
     case invalidSentBytes(Int)
     case invalidData(Data)
 }
-
-// MARK: - Linux Support
-
-#if os(Linux)
-    
-internal let SOCK_RAW = CInt(Glibc.SOCK_RAW.rawValue)
-
-#endif
-
-internal let AF_NETLINK: CInt = 16
-
-internal let PF_NETLINK = AF_NETLINK

@@ -40,6 +40,11 @@ internal extension Netlink80211 {
     
     final class ScanOperation {
         
+        enum Error: Swift.Error {
+            
+            case scanningNotSupported
+        }
+        
         // WLAN interface
         let interface: WLANInterface
         
@@ -73,7 +78,15 @@ internal extension Netlink80211 {
         /// Issue NL80211_CMD_TRIGGER_SCAN to the kernel and wait for it to finish.
         func triggerScan(with ssid: SSID? = nil) throws {
             
+            // register for `scan` multicast group
+            guard let scanGroup = driver.multicastGroups.first(where: { $0.name.rawValue == "scan" })
+                else { throw Error.scanningNotSupported }
             
+            // subscribe to group
+            try socket.subscribe(to: scanGroup.identifier)
+            defer { try? socket.unsubscribe(from: scanGroup.identifier) }
+            
+            //
         }
         
         /// Issue NL80211_CMD_GET_SCAN.

@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import CLinuxWLAN
 
 #if swift(>=3.2)
 #elseif swift(>=3.0)
@@ -43,9 +44,48 @@ public extension NetlinkGenericFamilyController {
     
     public struct MulticastGroup {
         
-        public let name: NetlinkGenericFamilyName
+        public let name: NetlinkGenericGroupName
         
-        public let identifier: UInt32
+        public let identifier: NetlinkGenericGroupIdentifier
+    }
+}
+
+// MARK: - Request
+
+public extension NetlinkSocket {
+    
+    /// Query the family name.
+    func resolve(name: NetlinkGenericFamilyName) throws -> NetlinkGenericFamilyController {
+        
+        guard netlinkProtocol == .generic
+            else { throw NetlinkSocketError.invalidProtocol }
+        
+        //let command = NetlinkGetGenericFamilyIdentifierCommand(name: name)
+        
+        let attribute = NetlinkAttribute(value: name.rawValue,
+                                         type: NetlinkAttributeType.Generic.Controller.familyName)
+        
+        let message = NetlinkGenericMessage(type: NetlinkMessageType(rawValue: UInt16(GENL_ID_CTRL)),
+                                            flags: .request,
+                                            sequence: 0,
+                                            process: 0, // kernel
+                                            command: .getFamily,
+                                            version: 1,
+                                            payload: attribute.paddedData)
+        
+        // send message to kernel
+        try send(message.data)
+        let recievedData = try recieve()
+        
+        let decoder = NetlinkAttributeDecoder()
+        
+        // parse response
+        guard let messages = try? NetlinkGenericMessage.from(data: recievedData),
+            let response = messages.first,
+            let controller = try? decoder.decode(NetlinkGenericFamilyController.self, from: response)
+            else { throw NetlinkSocketError.invalidData(recievedData) }
+        
+        return controller
     }
 }
 
@@ -214,8 +254,8 @@ extension NetlinkGenericFamilyController.MulticastGroup: Codable {
         
         let container = try decoder.container(keyedBy: CodingKeys.self)
         
-        self.identifier = try container.decode(UInt32.self, forKey: .identifier)
-        self.name = try container.decode(NetlinkGenericFamilyName.self, forKey: .name)
+        self.identifier = try container.decode(NetlinkGenericGroupIdentifier.self, forKey: .identifier)
+        self.name = try container.decode(NetlinkGenericGroupName.self, forKey: .name)
     }
     
     public func encode(to encoder: Encoder) throws {
