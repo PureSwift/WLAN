@@ -117,6 +117,47 @@ final class NetlinkTests: XCTestCase {
     
     func testGetScanResultsCommand() {
         
+        do {
+            
+            /**
+             Waiting for scan to complete...
+             Got 33.
+             Got NL80211_CMD_NEW_SCAN_RESULTS.
+             Scan is done.
+             NL80211_CMD_GET_SCAN sent 28 bytes to the kernel.
+             
+             [0x1C, 0x00, 0x00, 0x00, 0x1C, 0x00, 0x05, 0x03, 0xE2, 0x72, 0x5E, 0x5B, 0x10, 0x19, 0xC0, 0xDC, 0x20, 0x00, 0x00, 0x00, 0x08, 0x00, 0x03, 0x00, 0x06, 0x00, 0x00, 0x00]
+             */
+            
+            let data = Data([0x1C, 0x00, 0x00, 0x00, 0x1C, 0x00, 0x05, 0x03, 0xE2, 0x72, 0x5E, 0x5B, 0x10, 0x19, 0xC0, 0xDC, 0x20, 0x00, 0x00, 0x00, 0x08, 0x00, 0x03, 0x00, 0x06, 0x00, 0x00, 0x00])
+            
+            var decoder = NetlinkAttributeDecoder()
+            decoder.log = { print("Decoder:", $0) }
+            
+            guard let message = NetlinkGenericMessage(data: data),
+                let attributes = try? decoder.decode(message)
+                else { XCTFail("Could not parse message from data"); return }
+            
+            XCTAssertEqual(message.data, data)
+            XCTAssertEqual(message.length, 28)
+            XCTAssertEqual(Int(message.length), data.count)
+            XCTAssertEqual(message.type.rawValue, 28) // NetlinkGenericFamilyIdentifier(rawValue: 28)
+            XCTAssertEqual(message.command.rawValue, NetlinkGenericCommand.NL80211.getScan.rawValue)
+            XCTAssertEqual(message.version.rawValue, 0)
+            XCTAssertEqual(message.flags, 773)
+            XCTAssertEqual(attributes.count, 1)
+            
+            //attributes.forEach { print(NL80211AttributeType(rawValue: $0.type.rawValue)!, Array($0.payload)) }
+            
+            do {
+                
+                let command = try decoder.decode(NL80211GetScanResultsCommand.self, from: message)
+                XCTAssertEqual(command.interface, 6)
+            }
+                
+            catch { XCTFail("Could not decode: \(error)"); return }
+        }
+        
         /**
          Interface: wlx74da3826382c
          Wireless Extension Version: 0
