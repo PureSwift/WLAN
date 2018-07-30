@@ -348,6 +348,10 @@ final class NetlinkTests: XCTestCase {
             XCTAssertEqual(value.generation, 1482)
             XCTAssertEqual(value.wirelessDevice, 0x0100000001)
             XCTAssertEqual(value.bss.bssid.rawValue, "18:A6:F7:99:81:90")
+            
+            // ssid name
+            let ssidLength = min(Int(value.bss.informationElements[1]), 32)
+            XCTAssertEqual(String(data: value.bss.informationElements[2 ..< 2 + ssidLength], encoding: .utf8), "COLEMANCDA")
         }
         
         catch { XCTFail("Could not decode: \(error)"); return }
