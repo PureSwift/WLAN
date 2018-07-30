@@ -288,8 +288,7 @@ final class NetlinkTests: XCTestCase {
         guard let message = NetlinkGenericMessage(data: data),
             let attributes = try? decoder.decode(message.payload),
             let interfaceAttribute = attributes.first(where: { $0.type == NetlinkAttributeType.NL80211.interfaceIndex }),
-            let interface = UInt32(attributeData: interfaceAttribute.payload),
-            let bssAttribute = attributes.first(where: { $0.type == NetlinkAttributeType.NL80211.bss })
+            let interface = UInt32(attributeData: interfaceAttribute.payload)
             else { XCTFail("Could not parse message from data"); return }
         
         XCTAssertEqual(message.data, data)
