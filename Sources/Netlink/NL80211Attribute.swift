@@ -39,6 +39,8 @@ public extension NetlinkAttributeType {
         
         public static let generation = NetlinkAttributeType(NL80211_ATTR_GENERATION)
         
+        public static let wirelessDevice = NetlinkAttributeType(NL80211_ATTR_WDEV)
+        
         /// Netlink attributes for BSS
         public enum BSS {
             

@@ -303,6 +303,9 @@ final class NetlinkTests: XCTestCase {
         
         do {
             let value = try decoder.decode(NL80211ScanResult.self, from: message)
+            XCTAssertEqual(value.interface, 5)
+            XCTAssertEqual(value.generation, 1482)
+            XCTAssertEqual(value.wirelessDevice, 0x0100000001)
             XCTAssertEqual(value.bss.bssid.rawValue, "18:A6:F7:99:81:90")
         }
         
