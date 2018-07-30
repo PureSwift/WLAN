@@ -34,6 +34,8 @@ public extension NL80211ScanResult {
     public struct BSS {
         
         public let bssid: BSSID
+        
+        public let informationElements: Data
     }
 }
 
@@ -105,12 +107,15 @@ extension NL80211ScanResult.BSS: Codable {
     internal enum CodingKeys: String, NetlinkAttributeCodingKey {
         
         case bssid
+        case informationElements
         
         init?(attribute: NetlinkAttributeType) {
             
             switch attribute {
             case NetlinkAttributeType.NL80211.BSS.bssid:
                 self = .bssid
+            case NetlinkAttributeType.NL80211.BSS.informationElements:
+                self = .informationElements
             default:
                 return nil
             }
@@ -121,6 +126,8 @@ extension NL80211ScanResult.BSS: Codable {
             switch self {
             case .bssid:
                 return NetlinkAttributeType.NL80211.BSS.bssid
+            case .informationElements:
+                return NetlinkAttributeType.NL80211.BSS.informationElements
             }
         }
     }
@@ -130,6 +137,7 @@ extension NL80211ScanResult.BSS: Codable {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         
         self.bssid = try container.decode(BSSID.self, forKey: .bssid)
+        self.informationElements = try container.decode(Data.self, forKey: .informationElements)
     }
     
     public func encode(to encoder: Encoder) throws {
@@ -137,6 +145,7 @@ extension NL80211ScanResult.BSS: Codable {
         var container = encoder.container(keyedBy: CodingKeys.self)
         
         try container.encode(bssid, forKey: .bssid)
+        try container.encode(informationElements, forKey: .informationElements)
     }
 }
 

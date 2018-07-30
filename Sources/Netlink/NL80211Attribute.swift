@@ -45,6 +45,8 @@ public extension NetlinkAttributeType {
         public enum BSS {
             
             public static let bssid = NetlinkAttributeType(NL80211_BSS_BSSID)
+            
+            public static let informationElements = NetlinkAttributeType(NL80211_BSS_INFORMATION_ELEMENTS)
         }
     }
 }

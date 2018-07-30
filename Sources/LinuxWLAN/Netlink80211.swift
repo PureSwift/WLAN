@@ -95,14 +95,9 @@ internal extension Netlink80211 {
             try socket.subscribe(to: scanGroup.identifier)
             defer { try? socket.unsubscribe(from: scanGroup.identifier) }
             
-            print("Interface:", interfaceIndex)
-            
             // Add message attribute, specify which interface to use.
             let interfaceAttribute = NetlinkAttribute(value: UInt32(interfaceIndex),
                                                       type: NetlinkAttributeType.NL80211.interfaceIndex)
-            
-            let ssidAttribute = NetlinkAttribute(type: NetlinkAttributeType.NL80211.scanSSIDs,
-                                                 payload: NetlinkGenericMessage(type: NetlinkMessageType(), flags: 0, sequence: 0, process: 0, command: 0, version: 0, payload: Data()).data)
             
             // Setup which command to run.
             let message = NetlinkGenericMessage(type: NetlinkMessageType(rawValue: UInt16(driver.identifier.rawValue)),
@@ -112,8 +107,6 @@ internal extension Netlink80211 {
                                                 command: NetlinkGenericCommand.NL80211.triggerScan,
                                                 version: 0,
                                                 payload: interfaceAttribute.paddedData)
-            
-            print("Sent \(message.data.count) bytes to kernel")
             
             // Send the message.
             try socket.send(message.data)
@@ -138,45 +131,42 @@ internal extension Netlink80211 {
                 }
                 
             } while (messages.contains(where: { $0.command == NetlinkGenericCommand.NL80211.newScanResults }) == false)
-            
-            print("Trigger scan:")
-            messages.filter({ $0.command == NetlinkGenericCommand.NL80211.newScanResults })
-                .forEach { print(Array($0.data)) }
         }
         
         /// Issue NL80211_CMD_GET_SCAN.
         func scanResults() throws -> [WLANNetwork] {
             
-            var networks = [WLANNetwork]()
-            
             // Add message attribute, specify which interface to use.
-            //let attribute = NetlinkAttribute(value: UInt32(interfaceIndex),
-            //                                 type: NetlinkAttributeType.NL80211.interfaceIndex)
+            let attribute = NetlinkAttribute(value: UInt32(interfaceIndex),
+                                             type: NetlinkAttributeType.NL80211.interfaceIndex)
             
             // Setup which command to run.
             let message = NetlinkGenericMessage(type: NetlinkMessageType(rawValue: UInt16(driver.identifier.rawValue)),
-                                                flags: [.request, .dump],
+                                                flags: 773,
                                                 sequence: newSequence(),
                                                 process: getpid(),
                                                 command: NetlinkGenericCommand.NL80211.getScan,
                                                 version: 0,
-                                                payload: Data())//attribute.paddedData)
+                                                payload: attribute.paddedData)
             
             // Send the message.
             try socket.send(message.data)
             
-            print("Sent \(message.data.count) to kernel")
-            
             // Retrieve the kernel's answer
             let messages = try socket.recieve(NetlinkGenericMessage.self)
             
-            guard let response = messages.first
-                else { throw Error.invalidResponse }
+            let decoder = NetlinkAttributeDecoder()
             
-            print("Scan results:")
-            print(Array(response.data))
+            let scanResults = try messages.map { try decoder.decode(NL80211ScanResult.self, from: $0) }
             
-            return networks
+            return scanResults.map {
+                
+                let ssidLength = min(Int($0.bss.informationElements[1]), 32)
+                
+                let ssid = SSID(data: $0.bss.informationElements[2 ..< 2 + ssidLength]) ?? ""
+                
+                return WLANNetwork(ssid: ssid, bssid: $0.bss.bssid)
+            }
         }
     }
 }
