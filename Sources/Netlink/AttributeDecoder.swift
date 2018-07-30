@@ -215,12 +215,20 @@ fileprivate extension NetlinkAttributeDecoder.Decoder {
     /// Attempt to decode native value to expected type.
     func unboxDecodable <T: Decodable> (_ attribute: NetlinkAttribute, as type: T.Type) throws -> T {
         
-        // push container to stack and decode using Decodable implementation
-        stack.push(.attribute(attribute))
-        let decoded = try T(from: self)
-        stack.pop()
-        
-        return decoded
+        // override for native types
+        if type == Data.self {
+            
+            return attribute.payload as! T
+            
+        } else {
+            
+            // push container to stack and decode using Decodable implementation
+            stack.push(.attribute(attribute))
+            let decoded = try T(from: self)
+            stack.pop()
+            
+            return decoded
+        }
     }
 }
 
