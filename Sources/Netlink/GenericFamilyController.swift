@@ -261,6 +261,7 @@ extension NetlinkGenericFamilyController.MulticastGroup: Codable {
         
         var container = encoder.container(keyedBy: CodingKeys.self)
         
-        try container.encode(name.rawValue, forKey: .name)
+        try container.encode(identifier, forKey: .identifier)
+        try container.encode(name, forKey: .name)
     }
 }
