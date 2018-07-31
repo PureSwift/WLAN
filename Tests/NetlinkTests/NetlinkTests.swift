@@ -170,56 +170,86 @@ final class NetlinkTests: XCTestCase {
             }
                 
             catch { XCTFail("Could not decode: \(error)"); return }
+            
+            do {
+                
+                let value = NL80211GetScanResultsCommand(interface: 6)
+                
+                var encoder = NetlinkAttributeEncoder()
+                encoder.log = { print("Encoder:", $0) }
+                
+                let data = try encoder.encode(value)
+                
+                XCTAssertEqual(message.payload, data)
+            }
+                
+            catch { XCTFail("Could not encode: \(error)"); return }
         }
-        
-        /**
-         Interface: wlx74da3826382c
-         Wireless Extension Version: 0
-         Wireless Extension Name: IEEE 802.11
-         interface 3
-         nl80211 NetlinkGenericFamilyIdentifier(rawValue: 28)
-         Sent 28 bytes to kernel
-         [28, 0, 0, 0, 28, 0, 5, 5, 96, 138, 91, 91, 237, 32, 0, 92, 32, 0, 0, 0, 8, 0, 3, 0, 3, 0, 0, 0]
-         Operation not supported
-        */
-        
-        let data = Data([28, 0, 0, 0, 28, 0, 1, 5, 0, 0, 0, 0, 47, 104, 0, 0, 32, 0, 0, 0, 8, 0, 3, 0, 3, 0, 0, 0])
-        
-        guard let message = NetlinkGenericMessage(data: data)
-            else { XCTFail("Could not parse message from data"); return }
-        
-        XCTAssertEqual(message.data, data)
-        XCTAssertEqual(message.length, 28)
-        XCTAssertEqual(Int(message.length), data.count)
-        XCTAssertEqual(message.type.rawValue, 28) // NetlinkGenericFamilyIdentifier(rawValue: 28)
-        XCTAssertEqual(message.command.rawValue, NetlinkGenericCommand.NL80211.getScan.rawValue)
-        XCTAssertEqual(message.version.rawValue, 0)
-        XCTAssertEqual(message.flags, [.dump, .request])
-        XCTAssertEqual(message.sequence, 0)
         
         do {
+            /**
+             Interface: wlx74da3826382c
+             Wireless Extension Version: 0
+             Wireless Extension Name: IEEE 802.11
+             interface 3
+             nl80211 NetlinkGenericFamilyIdentifier(rawValue: 28)
+             Sent 28 bytes to kernel
+             [28, 0, 0, 0, 28, 0, 5, 5, 96, 138, 91, 91, 237, 32, 0, 92, 32, 0, 0, 0, 8, 0, 3, 0, 3, 0, 0, 0]
+             Operation not supported
+             */
             
-            var decoder = NetlinkAttributeDecoder()
-            decoder.log = { print("Decoder:", $0) }
-            let command = try decoder.decode(NL80211GetScanResultsCommand.self, from: message)
+            let data = Data([28, 0, 0, 0, 28, 0, 1, 5, 0, 0, 0, 0, 47, 104, 0, 0, 32, 0, 0, 0, 8, 0, 3, 0, 3, 0, 0, 0])
             
-            XCTAssertEqual(command.interface, 3)
-        }
-        
-        catch { XCTFail("Could not decode: \(error)"); return }
+            guard let message = NetlinkGenericMessage(data: data)
+                else { XCTFail("Could not parse message from data"); return }
+            
+            XCTAssertEqual(message.data, data)
+            XCTAssertEqual(message.length, 28)
+            XCTAssertEqual(Int(message.length), data.count)
+            XCTAssertEqual(message.type.rawValue, 28) // NetlinkGenericFamilyIdentifier(rawValue: 28)
+            XCTAssertEqual(message.command.rawValue, NetlinkGenericCommand.NL80211.getScan.rawValue)
+            XCTAssertEqual(message.version.rawValue, 0)
+            XCTAssertEqual(message.flags, [.dump, .request])
+            XCTAssertEqual(message.sequence, 0)
+            
+            do {
                 
-        var attributes = [NetlinkAttribute]()
-        XCTAssertNoThrow(attributes = try NetlinkAttributeDecoder().decode(message))
-        
-        guard attributes.count == 1
-            else { XCTFail(); return }
-        
-        XCTAssertEqual(UInt32(attributeData: attributes[0].payload), 3)
-        XCTAssertEqual(attributes[0].payload, Data([0x03, 0x00, 0x00, 0x00]))
-        XCTAssertEqual(attributes[0].type.rawValue, NetlinkAttributeType.NL80211.interfaceIndex.rawValue)
-        
-        // libnl message
-        XCTAssertEqual(NetlinkGenericMessage(data: Data([28, 0, 0, 0, 28, 0, 5, 5, 96, 138, 91, 91, 237, 32, 0, 92, 32, 0, 0, 0, 8, 0, 3, 0, 3, 0, 0, 0]))?.flags, [.dump, .acknowledgment, .request])
+                var decoder = NetlinkAttributeDecoder()
+                decoder.log = { print("Decoder:", $0) }
+                let command = try decoder.decode(NL80211GetScanResultsCommand.self, from: message)
+                
+                XCTAssertEqual(command.interface, 3)
+            }
+                
+            catch { XCTFail("Could not decode: \(error)"); return }
+            
+            do {
+                
+                let value = NL80211GetScanResultsCommand(interface: 3)
+                
+                var encoder = NetlinkAttributeEncoder()
+                encoder.log = { print("Encoder:", $0) }
+                
+                let data = try encoder.encode(value)
+                
+                XCTAssertEqual(message.payload, data)
+            }
+                
+            catch { XCTFail("Could not encode: \(error)"); return }
+            
+            var attributes = [NetlinkAttribute]()
+            XCTAssertNoThrow(attributes = try NetlinkAttributeDecoder().decode(message))
+            
+            guard attributes.count == 1
+                else { XCTFail(); return }
+            
+            XCTAssertEqual(UInt32(attributeData: attributes[0].payload), 3)
+            XCTAssertEqual(attributes[0].payload, Data([0x03, 0x00, 0x00, 0x00]))
+            XCTAssertEqual(attributes[0].type.rawValue, NetlinkAttributeType.NL80211.interfaceIndex.rawValue)
+            
+            // libnl message
+            XCTAssertEqual(NetlinkGenericMessage(data: Data([28, 0, 0, 0, 28, 0, 5, 5, 96, 138, 91, 91, 237, 32, 0, 92, 32, 0, 0, 0, 8, 0, 3, 0, 3, 0, 0, 0]))?.flags, [.dump, .acknowledgment, .request])
+        }
     }
     
     func testTriggerScanResponse() {
@@ -279,8 +309,7 @@ final class NetlinkTests: XCTestCase {
          Trigger scan:
          */
         
-        let data = Data([160, 0, 0, 0, 28, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 34, 1, 0, 0, 8, 0, 1, 0, 4, 0, 0, 0, 8, 0, 3, 0, 8, 0, 0, 0, 12, 0, 153, 0, 1, 0, 0, 0, 4, 0, 0, 0, 4, 0, 45, 0, 108, 0, 44, 0, 8, 0, 0, 0, 108, 9, 0, 0, 8, 0, 1, 0, 113, 9, 0, 0, 8, 0, 2, 0, 118, 9, 0, 0, 8, 0, 3, 0, 123, 9, 0, 0, 8, 0, 4, 0, 128, 9, 0, 0, 8, 0, 5, 0, 133, 9, 0, 0, 8, 0, 6, 0, 138, 9, 0, 0, 8, 0, 7, 0, 143, 9, 0, 0, 8, 0, 8, 0, 148, 9, 0, 0, 8, 0, 9, 0, 153, 9, 0, 0, 8, 0, 10, 0, 158, 9, 0, 0, 8, 0, 11, 0, 163, 9, 0, 0, 8, 0, 12, 0, 168, 9, 0, 0]
-        )
+        let data = Data([160, 0, 0, 0, 28, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 34, 1, 0, 0, 8, 0, 1, 0, 4, 0, 0, 0, 8, 0, 3, 0, 8, 0, 0, 0, 12, 0, 153, 0, 1, 0, 0, 0, 4, 0, 0, 0, 4, 0, 45, 0, 108, 0, 44, 0, 8, 0, 0, 0, 108, 9, 0, 0, 8, 0, 1, 0, 113, 9, 0, 0, 8, 0, 2, 0, 118, 9, 0, 0, 8, 0, 3, 0, 123, 9, 0, 0, 8, 0, 4, 0, 128, 9, 0, 0, 8, 0, 5, 0, 133, 9, 0, 0, 8, 0, 6, 0, 138, 9, 0, 0, 8, 0, 7, 0, 143, 9, 0, 0, 8, 0, 8, 0, 148, 9, 0, 0, 8, 0, 9, 0, 153, 9, 0, 0, 8, 0, 10, 0, 158, 9, 0, 0, 8, 0, 11, 0, 163, 9, 0, 0, 8, 0, 12, 0, 168, 9, 0, 0])
         
         var decoder = NetlinkAttributeDecoder()
         decoder.log = { print("Decoder:", $0) }
