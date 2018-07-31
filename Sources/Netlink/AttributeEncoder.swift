@@ -91,23 +91,36 @@ internal extension NetlinkAttributeEncoder {
         
         func container<Key>(keyedBy type: Key.Type) -> KeyedEncodingContainer<Key> where Key : CodingKey {
             
-            fatalError()
+            log?("Requested container keyed by \(type) for path \"\(codingPathString)\"")
+            
+            let keyedContainer = KeyedContainer<Key>(referencing: self)
+            
+            return KeyedEncodingContainer(keyedContainer)
         }
         
         func unkeyedContainer() -> UnkeyedEncodingContainer {
+            
+            log?("Requested unkeyed container for path \"\(codingPathString)\"")
             
             fatalError()
         }
         
         func singleValueContainer() -> SingleValueEncodingContainer {
             
+            log?("Requested single value container for path \"\(codingPathString)\"")
+            
             fatalError()
         }
-        
     }
 }
 
 internal extension NetlinkAttributeEncoder.Encoder {
+    
+    /// KVC path string for current coding path.
+    var codingPathString: String {
+        
+        return codingPath.reduce("", { $0 + "\($0.isEmpty ? "" : ".")" + $1.stringValue })
+    }
     
     func attributeType <Key: CodingKey> (for key: Key) throws -> NetlinkAttributeType {
         
@@ -132,6 +145,36 @@ internal extension NetlinkAttributeEncoder.Encoder {
             }
             
             return NetlinkAttributeType(rawValue: UInt16(intValue))
+        }
+    }
+}
+
+internal extension NetlinkAttributeEncoder.Encoder {
+    
+    @inline(__always)
+    func box <T: NetlinkAttributeEncodable> (_ value: T) -> Data {
+        
+        return value.attributeData
+    }
+    
+    func boxEncodable <T: Encodable> (_ value: T) throws -> Data {
+        
+        if let attributeValue = value as? NetlinkAttributeEncodable {
+            
+            return attributeValue.attributeData
+            
+        } else if let dataValue = value as? Data {
+            
+            return dataValue
+            
+        } else {
+            
+            // encode using Encodable
+            stack.push()
+            try value.encode(to: self)
+            let nestedContainer = stack.pop()
+            
+            return nestedContainer.data
         }
     }
 }
@@ -162,7 +205,7 @@ internal extension NetlinkAttributeEncoder.Encoder {
             containers[containers.count - 1].attributes.append(attribute)
         }
         
-        mutating func push(_ container: Container) {
+        mutating func push(_ container: Container = Container()) {
             
             containers.append(container)
         }
@@ -214,10 +257,10 @@ internal extension NetlinkAttributeEncoder.Encoder {
         /// The path of coding keys taken to get to this point in encoding.
         let codingPath: [CodingKey]
         
-        init(referencing encoder: NetlinkAttributeEncoder.Encoder, codingPath: [CodingKey]) {
+        init(referencing encoder: NetlinkAttributeEncoder.Encoder) {
             
             self.encoder = encoder
-            self.codingPath = codingPath
+            self.codingPath = encoder.codingPath
         }
         
         // MARK: - Methods
@@ -254,18 +297,14 @@ internal extension NetlinkAttributeEncoder.Encoder {
         
         func encode <T: Encodable> (_ value: T, forKey key: K) throws {
             
-            let data: Data
+            self.encoder.codingPath.append(key)
+            defer { self.encoder.codingPath.removeLast() }
             
-            if let dataValue = value as? Data {
-                
-                data = dataValue
-                
-            } else {
-                
-                // encode
-                
-                try value.encode(to: self.encoder)
-            }
+            let type = try encoder.attributeType(for: key)
+            
+            let data = try encoder.boxEncodable(value)
+            
+            encoder.stack.append(NetlinkAttribute(type: type, payload: data))
         }
         
         func nestedContainer<NestedKey>(keyedBy keyType: NestedKey.Type, forKey key: K) -> KeyedEncodingContainer<NestedKey> where NestedKey : CodingKey {
@@ -296,7 +335,10 @@ internal extension NetlinkAttributeEncoder.Encoder {
             defer { self.encoder.codingPath.removeLast() }
             
             let type = try encoder.attributeType(for: key)
-            encoder.stack.append(NetlinkAttribute(type: type, payload: value.attributeData))
+            
+            let data = encoder.box(value)
+            
+            encoder.stack.append(NetlinkAttribute(type: type, payload: data))
         }
     }
 }
