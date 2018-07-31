@@ -54,10 +54,24 @@ final class NetlinkTests: XCTestCase {
             decoder.log = { print("Decoder:", $0) }
             let command = try decoder.decode(NetlinkGetGenericFamilyIdentifierCommand.self, from: message)
             
-            XCTAssertEqual(command.name.rawValue, "nl80211")
+            XCTAssertEqual(command.name, .nl80211)
         }
             
         catch { XCTFail("Could not decode: \(error)"); return }
+        
+        do {
+            
+            let value = NetlinkGetGenericFamilyIdentifierCommand(name: .nl80211)
+            
+            var encoder = NetlinkAttributeEncoder()
+            encoder.log = { print("Encoder:", $0) }
+            
+            let data = try encoder.encode(value)
+            
+            XCTAssertEqual(message.payload, data)
+        }
+        
+        catch { XCTFail("Could not encode: \(error)"); return }
     }
     
     func testResolveGenericFamilyResponse() {
