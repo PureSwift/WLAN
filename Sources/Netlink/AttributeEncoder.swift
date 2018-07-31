@@ -9,9 +9,11 @@ import Foundation
 
 #if swift(>=3.2)
     internal typealias EncoderProtocol = Swift.Encoder
+    public typealias CodableEncodingError = Swift.EncodingError
 #elseif swift(>=3.0)
     import Codable
     internal typealias EncoderProtocol = Encoder
+    public typealias CodableEncodingError = EncodingError
 #endif
 
 /// Netlink Attribute Encoder
@@ -49,7 +51,11 @@ public extension NetlinkAttributeEncoder {
     
     public enum EncodingError: Error {
         
+        #if swift(>=3.2)
         public typealias Context = Swift.EncodingError.Context
+        #elseif swift(>=3.0)
+        public typealias Context = CodableEncodingError.Context
+        #endif
         
         /// Invalid coding key provided.
         case invalidKey(CodingKey, Context)

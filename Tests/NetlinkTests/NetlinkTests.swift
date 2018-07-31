@@ -160,9 +160,7 @@ final class NetlinkTests: XCTestCase {
             XCTAssertEqual(message.version.rawValue, 0)
             XCTAssertEqual(message.flags, 773)
             XCTAssertEqual(attributes.count, 1)
-            
-            //attributes.forEach { print(NL80211AttributeType(rawValue: $0.type.rawValue)!, Array($0.payload)) }
-            
+                        
             do {
                 
                 let command = try decoder.decode(NL80211GetScanResultsCommand.self, from: message)
