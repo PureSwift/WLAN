@@ -62,8 +62,8 @@ public extension NetlinkSocket {
         
         //let command = NetlinkGetGenericFamilyIdentifierCommand(name: name)
         
-        let attribute = NetlinkAttribute(value: name.rawValue,
-                                         type: NetlinkAttributeType.Generic.Controller.familyName)
+        let attribute = NetlinkAttribute(type: NetlinkAttributeType.Generic.Controller.familyName,
+                                         payload: name.rawValue.attributeData)
         
         let message = NetlinkGenericMessage(type: NetlinkMessageType(rawValue: UInt16(GENL_ID_CTRL)),
                                             flags: .request,

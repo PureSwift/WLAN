@@ -38,7 +38,6 @@ public struct NetlinkAttributeDecoder {
         let attributes = try decode(data)
         
         let decoder = Decoder(referencing: .attributes(attributes),
-                              at: [],
                               userInfo: userInfo,
                               log: log)
         

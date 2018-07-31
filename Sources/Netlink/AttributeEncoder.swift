@@ -39,7 +39,9 @@ public struct NetlinkAttributeEncoder {
         
         try value.encode(to: encoder)
         
-        return encoder.storage.data
+        assert(encoder.stack.containers.count == 1)
+        
+        return encoder.stack.top.data
     }
 }
 
@@ -71,7 +73,7 @@ internal extension NetlinkAttributeEncoder {
         /// Logger
         let log: Log?
         
-        private(set) var storage = Storage()
+        fileprivate var stack: Stack
         
         // MARK: - Initialization
         
@@ -79,6 +81,7 @@ internal extension NetlinkAttributeEncoder {
              userInfo: [CodingUserInfoKey : Any],
              log: Log?) {
             
+            self.stack = Stack()
             self.codingPath = codingPath
             self.userInfo = userInfo
             self.log = log
@@ -133,27 +136,66 @@ internal extension NetlinkAttributeEncoder.Encoder {
     }
 }
 
-// MARK: - Concrete Value Representations
-
-internal extension NetlinkAttributeEncoder.Encoder {
-    
-    func unbox <T: NetlinkAttributeEncodable> (_ value: T) -> Data {
-        
-        
-    }
-}
-
 // MARK: - Stack
 
 internal extension NetlinkAttributeEncoder.Encoder {
     
-    internal class Storage {
+    internal struct Stack {
         
-        private(set) var data = Data()
+        private(set) var containers: [Container]
         
-        func append(_ attribute: NetlinkAttribute) {
+        init() {
             
-            data += attribute.paddedData
+            self.containers = [Container()]
+        }
+        
+        var top: Container {
+            
+            guard let container = containers.last
+                else { fatalError("Empty container stack.") }
+            
+            return container
+        }
+        
+        mutating func append(_ attribute: NetlinkAttribute) {
+            
+            containers[containers.count - 1].attributes.append(attribute)
+        }
+        
+        mutating func push(_ container: Container) {
+            
+            containers.append(container)
+        }
+        
+        @discardableResult
+        mutating func pop() -> Container {
+            
+            guard let container = containers.popLast()
+                else { fatalError("Empty container stack.") }
+            
+            return container
+        }
+    }
+}
+
+internal extension NetlinkAttributeEncoder.Encoder {
+    
+    final class Container {
+        
+        var attributes: [NetlinkAttribute]
+        
+        init(attributes: [NetlinkAttribute] = []) {
+            
+            self.attributes = attributes
+        }
+        
+        var data: Data {
+            
+            let size = attributes.reduce(0, { $0.0 + $0.1.paddedLength })
+            
+            let data = attributes.reduce(Data(capacity: size), { $0.0 + $0.1.paddedData })
+            
+            return data
         }
     }
 }
@@ -180,95 +222,82 @@ internal extension NetlinkAttributeEncoder.Encoder {
         
         // MARK: - Methods
         
-        func encodeNil(forKey key: K) throws {
-            
-            let attributeType = try encoder.attributeType(for: key)
-            encoder.storage.append(NetlinkAttribute(type: attributeType, payload: Data()))
-        }
+        func encodeNil(forKey key: K) throws { try _encode(NetlinkAttributeEncoder.Encoder.Null(), forKey: key) }
         
-        func encode(_ value: Bool, forKey key: K) throws {
-            
-            let type = try encoder.attributeType(for: key)
-            encoder.storage.append(NetlinkAttribute(type: type, value: value))
-        }
+        func encode(_ value: Bool, forKey key: K) throws { try _encode(value, forKey: key) }
         
-        func encode(_ value: Int, forKey key: K) throws {
-            
-            let type = try encoder.attributeType(for: key)
-            encoder.storage.append(NetlinkAttribute(value: Int32(value), type: type))
-        }
+        func encode(_ value: Int, forKey key: K) throws { try _encode(Int32(value), forKey: key) }
         
-        func encode(_ value: Int8, forKey key: K) throws {
-            
-            let type = try encoder.attributeType(for: key)
-            encoder.storage.append(NetlinkAttribute(value: value, type: type))
-        }
+        func encode(_ value: Int8, forKey key: K) throws { try _encode(value, forKey: key) }
         
-        func encode(_ value: Int16, forKey key: K) throws {
-            
-        }
+        func encode(_ value: Int16, forKey key: K) throws { try _encode(value, forKey: key) }
         
-        func encode(_ value: Int32, forKey key: K) throws {
-            
-        }
+        func encode(_ value: Int32, forKey key: K) throws { try _encode(value, forKey: key) }
         
-        func encode(_ value: Int64, forKey key: K) throws {
-            
-        }
+        func encode(_ value: Int64, forKey key: K) throws { try _encode(value, forKey: key) }
         
-        func encode(_ value: UInt, forKey key: K) throws {
-            
-        }
+        func encode(_ value: UInt, forKey key: K) throws { try _encode(UInt32(value), forKey: key) }
         
-        func encode(_ value: UInt8, forKey key: K) throws {
-            
-        }
+        func encode(_ value: UInt8, forKey key: K) throws { try _encode(value, forKey: key) }
         
-        func encode(_ value: UInt16, forKey key: K) throws {
-            
-        }
+        func encode(_ value: UInt16, forKey key: K) throws { try _encode(value, forKey: key) }
         
-        func encode(_ value: UInt32, forKey key: K) throws {
-            
-        }
+        func encode(_ value: UInt32, forKey key: K) throws { try _encode(value, forKey: key) }
         
-        func encode(_ value: UInt64, forKey key: K) throws {
-            
-        }
+        func encode(_ value: UInt64, forKey key: K) throws { try _encode(value, forKey: key) }
         
-        func encode(_ value: Float, forKey key: K) throws {
-            
-        }
+        func encode(_ value: Float, forKey key: K) throws { try _encode(value, forKey: key) }
         
-        func encode(_ value: Double, forKey key: K) throws {
-            
-        }
+        func encode(_ value: Double, forKey key: K) throws { try _encode(value, forKey: key) }
         
-        func encode(_ value: String, forKey key: K) throws {
-            
-        }
+        func encode(_ value: String, forKey key: K) throws { try _encode(value, forKey: key) }
         
-        func encode<T>(_ value: T, forKey key: K) throws where T : Encodable {
+        func encode <T: Encodable> (_ value: T, forKey key: K) throws {
             
+            let data: Data
+            
+            if let dataValue = value as? Data {
+                
+                data = dataValue
+                
+            } else {
+                
+                // encode
+                
+                try value.encode(to: self.encoder)
+            }
         }
         
         func nestedContainer<NestedKey>(keyedBy keyType: NestedKey.Type, forKey key: K) -> KeyedEncodingContainer<NestedKey> where NestedKey : CodingKey {
             
+            fatalError()
         }
         
         func nestedUnkeyedContainer(forKey key: K) -> UnkeyedEncodingContainer {
             
+            fatalError()
         }
         
-        func superEncoder() -> Encoder {
+        func superEncoder() -> EncoderProtocol {
             
+            fatalError()
         }
         
-        func superEncoder(forKey key: K) -> Encoder {
+        func superEncoder(forKey key: K) -> EncoderProtocol {
             
+            fatalError()
         }
         
         // MARK: - Private Methods
+        
+        private func _encode <T: NetlinkAttributeEncodable> (_ value: T, forKey key: K) throws {
+            
+            self.encoder.codingPath.append(key)
+            defer { self.encoder.codingPath.removeLast() }
+            
+            let type = try encoder.attributeType(for: key)
+            encoder.stack.append(NetlinkAttribute(type: type, payload: value.attributeData))
+        }
     }
 }
 
@@ -290,6 +319,22 @@ private extension NetlinkAttributeEncodable {
         var copy = self
         
         return withUnsafePointer(to: &copy, { Data(bytes: $0, count: MemoryLayout<Self>.size) })
+    }
+}
+
+internal extension NetlinkAttributeEncoder.Encoder {
+    
+    struct Null {
+        
+        init() { }
+    }
+}
+
+extension NetlinkAttributeEncoder.Encoder.Null: NetlinkAttributeEncodable {
+    
+    public var attributeData: Data {
+        
+        return Data()
     }
 }
 
@@ -350,6 +395,22 @@ extension Int32: NetlinkAttributeEncodable {
 }
 
 extension Int64: NetlinkAttributeEncodable {
+    
+    public var attributeData: Data {
+        
+        return copyingBytes
+    }
+}
+
+extension Float: NetlinkAttributeEncodable {
+    
+    public var attributeData: Data {
+        
+        return copyingBytes
+    }
+}
+
+extension Double: NetlinkAttributeEncodable {
     
     public var attributeData: Data {
         

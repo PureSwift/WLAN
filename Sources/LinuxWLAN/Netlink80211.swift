@@ -96,8 +96,8 @@ internal extension Netlink80211 {
             defer { try? socket.unsubscribe(from: scanGroup.identifier) }
             
             // Add message attribute, specify which interface to use.
-            let interfaceAttribute = NetlinkAttribute(value: UInt32(interfaceIndex),
-                                                      type: NetlinkAttributeType.NL80211.interfaceIndex)
+            let interfaceAttribute = NetlinkAttribute(type: NetlinkAttributeType.NL80211.interfaceIndex,
+                                                      payload: UInt32(interfaceIndex).attributeData)
             
             // Setup which command to run.
             let message = NetlinkGenericMessage(type: NetlinkMessageType(rawValue: UInt16(driver.identifier.rawValue)),
@@ -137,8 +137,8 @@ internal extension Netlink80211 {
         func scanResults() throws -> [WLANNetwork] {
             
             // Add message attribute, specify which interface to use.
-            let attribute = NetlinkAttribute(value: UInt32(interfaceIndex),
-                                             type: NetlinkAttributeType.NL80211.interfaceIndex)
+            let interfaceAttribute = NetlinkAttribute(type: NetlinkAttributeType.NL80211.interfaceIndex,
+                                                      payload: UInt32(interfaceIndex).attributeData)
             
             // Setup which command to run.
             let message = NetlinkGenericMessage(type: NetlinkMessageType(rawValue: UInt16(driver.identifier.rawValue)),
@@ -147,7 +147,7 @@ internal extension Netlink80211 {
                                                 process: getpid(),
                                                 command: NetlinkGenericCommand.NL80211.getScan,
                                                 version: 0,
-                                                payload: attribute.paddedData)
+                                                payload: interfaceAttribute.paddedData)
             
             // Send the message.
             try socket.send(message.data)
