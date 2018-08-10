@@ -260,6 +260,28 @@ final class NetlinkTests: XCTestCase {
          SCAN_FREQUENCIES [8, 0, 0, 0, 108, 9, 0, 0, 8, 0, 1, 0, 113, 9, 0, 0, 8, 0, 2, 0, 118, 9, 0, 0, 8, 0, 3, 0, 123, 9, 0, 0, 8, 0, 4, 0, 128, 9, 0, 0, 8, 0, 5, 0, 133, 9, 0, 0, 8, 0, 6, 0, 138, 9, 0, 0, 8, 0, 7, 0, 143, 9, 0, 0, 8, 0, 8, 0, 148, 9, 0, 0, 8, 0, 9, 0, 153, 9, 0, 0, 8, 0, 10, 0, 158, 9, 0, 0, 8, 0, 11, 0, 163, 9, 0, 0, 8, 0, 12, 0, 168, 9, 0, 0]
          */
         
+        /**
+         ▿ Netlink.NL80211TriggerScanStatus
+         - wiphy: 1
+         - interface: 4
+         - wirelessDevice: 4294967297
+         - scanSSIDs: 0 elements
+         ▿ scanFrequencies: 13 elements
+         - 2412
+         - 2417
+         - 2422
+         - 2427
+         - 2432
+         - 2437
+         - 2442
+         - 2447
+         - 2452
+         - 2457
+         - 2462
+         - 2467
+         - 2472
+         */
+        
         let data = Data([160, 0, 0, 0, 28, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 33, 1, 0, 0, 8, 0, 1, 0, 1, 0, 0, 0, 8, 0, 3, 0, 4, 0, 0, 0, 12, 0, 153, 0, 1, 0, 0, 0, 1, 0, 0, 0, 4, 0, 45, 0, 108, 0, 44, 0, 8, 0, 0, 0, 108, 9, 0, 0, 8, 0, 1, 0, 113, 9, 0, 0, 8, 0, 2, 0, 118, 9, 0, 0, 8, 0, 3, 0, 123, 9, 0, 0, 8, 0, 4, 0, 128, 9, 0, 0, 8, 0, 5, 0, 133, 9, 0, 0, 8, 0, 6, 0, 138, 9, 0, 0, 8, 0, 7, 0, 143, 9, 0, 0, 8, 0, 8, 0, 148, 9, 0, 0, 8, 0, 9, 0, 153, 9, 0, 0, 8, 0, 10, 0, 158, 9, 0, 0, 8, 0, 11, 0, 163, 9, 0, 0, 8, 0, 12, 0, 168, 9, 0, 0])
         
         var decoder = NetlinkAttributeDecoder()
@@ -292,6 +314,61 @@ final class NetlinkTests: XCTestCase {
             
             XCTAssertEqual(value.wiphy, 1)
             XCTAssertEqual(value.interface, 4)
+            XCTAssertEqual(value.wirelessDevice, 4294967297)
+            XCTAssertEqual(value.scanSSIDs, [])
+            XCTAssertEqual(value.scanFrequencies, [
+                2412,
+                2417,
+                2422,
+                2427,
+                2432,
+                2437,
+                2442,
+                2447,
+                2452,
+                2457,
+                2462,
+                2467,
+                2472
+                ])
+            
+            do {
+                
+                var encoder = NetlinkAttributeEncoder()
+                encoder.log = { print("Encoder:", $0) }
+                
+                let encodedData = try encoder.encode(value)
+                
+                XCTAssertEqual(message.payload.count, encodedData.count)
+                
+                do {
+                    let decoded = try decoder.decode(NL80211TriggerScanStatus.self, from: encodedData)
+                    
+                    XCTAssertEqual(decoded.wiphy, 1)
+                    XCTAssertEqual(decoded.interface, 4)
+                    XCTAssertEqual(decoded.wirelessDevice, 4294967297)
+                    XCTAssertEqual(decoded.scanSSIDs, [])
+                    XCTAssertEqual(decoded.scanFrequencies, [
+                        2412,
+                        2417,
+                        2422,
+                        2427,
+                        2432,
+                        2437,
+                        2442,
+                        2447,
+                        2452,
+                        2457,
+                        2462,
+                        2467,
+                        2472
+                        ])
+                }
+                    
+                catch { XCTFail("Could not decode: \(error)"); return }
+            }
+                
+            catch { XCTFail("Could not encode: \(error)"); return }
         }
             
         catch { XCTFail("Could not decode: \(error)"); return }

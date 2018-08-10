@@ -124,7 +124,7 @@ internal extension NetlinkAttributeEncoder {
             let stackContainer = AttributesContainer()
             self.stack.push(.attributes(stackContainer))
             
-            fatalError()
+            return AttributesUnkeyedEncodingContainer(referencing: self, wrapping: stackContainer)
         }
         
         func singleValueContainer() -> SingleValueEncodingContainer {
@@ -304,7 +304,7 @@ internal extension NetlinkAttributeEncoder.Encoder {
         /// The path of coding keys taken to get to this point in encoding.
         let codingPath: [CodingKey]
         
-        /// A reference to the container we're reading from.
+        /// A reference to the container we're writing to.
         let container: AttributesContainer
         
         // MARK: - Initialization
@@ -418,7 +418,7 @@ internal extension NetlinkAttributeEncoder.Encoder {
         /// The path of coding keys taken to get to this point in encoding.
         let codingPath: [CodingKey]
         
-        /// A reference to the container we're reading from.
+        /// A reference to the container we're writing to.
         let container: AttributeContainer
         
         /// Whether the data has been written
@@ -477,6 +477,101 @@ internal extension NetlinkAttributeEncoder.Encoder {
             self.container.data = data
             
             self.didWrite = true
+        }
+    }
+}
+
+// MARK: - UnkeyedEncodingContainer
+
+internal extension NetlinkAttributeEncoder.Encoder {
+    
+    final class AttributesUnkeyedEncodingContainer: UnkeyedEncodingContainer {
+        
+        // MARK: - Properties
+        
+        /// A reference to the encoder we're writing to.
+        let encoder: NetlinkAttributeEncoder.Encoder
+        
+        /// The path of coding keys taken to get to this point in encoding.
+        let codingPath: [CodingKey]
+        
+        /// A reference to the container we're writing to.
+        let container: AttributesContainer
+        
+        // MARK: - Initialization
+        
+        init(referencing encoder: NetlinkAttributeEncoder.Encoder,
+             wrapping container: AttributesContainer) {
+            
+            self.encoder = encoder
+            self.codingPath = encoder.codingPath
+            self.container = container
+        }
+        
+        // MARK: - Methods
+        
+        /// The number of elements encoded into the container.
+        var count: Int {
+            
+            return container.attributes.count
+        }
+        
+        // MARK: - Methods
+        
+        func encodeNil() throws { append(encoder.box(Null())) }
+        
+        func encode(_ value: Bool) throws { append(encoder.box(value)) }
+        
+        func encode(_ value: String) throws { append(encoder.box(value)) }
+        
+        func encode(_ value: Double) throws { append(encoder.box(value)) }
+        
+        func encode(_ value: Float) throws { append(encoder.box(value)) }
+        
+        func encode(_ value: Int) throws { append(encoder.box(Int32(value))) }
+        
+        func encode(_ value: Int8) throws { append(encoder.box(value)) }
+        
+        func encode(_ value: Int16) throws { append(encoder.box(value)) }
+        
+        func encode(_ value: Int32) throws { append(encoder.box(value)) }
+        
+        func encode(_ value: Int64) throws { append(encoder.box(value)) }
+        
+        func encode(_ value: UInt) throws { append(encoder.box(UInt32(value))) }
+        
+        func encode(_ value: UInt8) throws { append(encoder.box(value)) }
+        
+        func encode(_ value: UInt16) throws { append(encoder.box(value)) }
+        
+        func encode(_ value: UInt32) throws { append(encoder.box(value)) }
+        
+        func encode(_ value: UInt64) throws { append(encoder.box(value)) }
+        
+        func encode <T: Encodable> (_ value: T) throws { append(try encoder.boxEncodable(value)) }
+        
+        func nestedContainer<NestedKey>(keyedBy keyType: NestedKey.Type) -> KeyedEncodingContainer<NestedKey> where NestedKey : CodingKey {
+            
+            fatalError()
+        }
+        
+        func nestedUnkeyedContainer() -> UnkeyedEncodingContainer {
+            
+            fatalError()
+        }
+        
+        func superEncoder() -> Encoder {
+            
+            fatalError()
+        }
+        
+        // MARK: - Private Methods
+        
+        private func append(_ data: Data) {
+            
+            let index = NetlinkAttributeType(rawValue: UInt16(count))
+            
+            self.container.attributes[index] = data
         }
     }
 }
