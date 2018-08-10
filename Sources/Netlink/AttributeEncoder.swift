@@ -43,7 +43,17 @@ public struct NetlinkAttributeEncoder {
         
         assert(encoder.stack.containers.count == 1)
         
-        return encoder.stack.top.data
+        guard case let .attributes(attributesContainer) = encoder.stack.root else {
+            
+            throw CodableEncodingError.invalidValue(value, EncodingError.Context(codingPath: [], debugDescription: "Top-level \(T.self) is not encoded as attributes."))
+        }
+        
+        return attributesContainer.data
+    }
+    
+    public func encode(_ attributes: [NetlinkAttribute]) -> Data {
+        
+        return attributes.reduce(Data(), { $0.0 + $0.1.paddedData })
     }
 }
 
@@ -99,7 +109,10 @@ internal extension NetlinkAttributeEncoder {
             
             log?("Requested container keyed by \(type) for path \"\(codingPathString)\"")
             
-            let keyedContainer = KeyedContainer<Key>(referencing: self)
+            let stackContainer = AttributesContainer()
+            self.stack.push(.attributes(stackContainer))
+            
+            let keyedContainer = KeyedContainer<Key>(referencing: self, wrapping: stackContainer)
             
             return KeyedEncodingContainer(keyedContainer)
         }
@@ -108,6 +121,9 @@ internal extension NetlinkAttributeEncoder {
             
             log?("Requested unkeyed container for path \"\(codingPathString)\"")
             
+            let stackContainer = AttributesContainer()
+            self.stack.push(.attributes(stackContainer))
+            
             fatalError()
         }
         
@@ -115,7 +131,10 @@ internal extension NetlinkAttributeEncoder {
             
             log?("Requested single value container for path \"\(codingPathString)\"")
             
-            fatalError()
+            let stackContainer = AttributeContainer()
+            self.stack.push(.attribute(stackContainer))
+            
+            return AttributeSingleValueEncodingContainer(referencing: self, wrapping: stackContainer)
         }
     }
 }
@@ -175,8 +194,7 @@ internal extension NetlinkAttributeEncoder.Encoder {
             
         } else {
             
-            // encode using Encodable
-            stack.push()
+            // encode using Encodable, should push new container.
             try value.encode(to: self)
             let nestedContainer = stack.pop()
             
@@ -191,12 +209,9 @@ internal extension NetlinkAttributeEncoder.Encoder {
     
     internal struct Stack {
         
-        private(set) var containers: [Container]
+        private(set) var containers = [Container]()
         
-        init() {
-            
-            self.containers = [Container()]
-        }
+        fileprivate init() { }
         
         var top: Container {
             
@@ -206,12 +221,15 @@ internal extension NetlinkAttributeEncoder.Encoder {
             return container
         }
         
-        mutating func append(_ attribute: NetlinkAttribute) {
+        var root: Container {
             
-            containers[containers.count - 1].attributes.append(attribute)
+            guard let container = containers.first
+                else { fatalError("Empty container stack.") }
+            
+            return container
         }
         
-        mutating func push(_ container: Container = Container()) {
+        mutating func push(_ container: Container) {
             
             containers.append(container)
         }
@@ -229,22 +247,43 @@ internal extension NetlinkAttributeEncoder.Encoder {
 
 internal extension NetlinkAttributeEncoder.Encoder {
     
-    final class Container {
+    final class AttributesContainer {
         
-        var attributes: [NetlinkAttribute]
+        var attributes = [NetlinkAttributeType: Data]()
         
-        init(attributes: [NetlinkAttribute] = []) {
-            
-            self.attributes = attributes
-        }
+        fileprivate init() { }
         
         var data: Data {
             
-            let size = attributes.reduce(0, { $0.0 + $0.1.paddedLength })
+            let size = attributes.reduce(0, { $0.0 + NetlinkAttribute(type: $0.1.key, payload: $0.1.value).paddedLength })
             
-            let data = attributes.reduce(Data(capacity: size), { $0.0 + $0.1.paddedData })
+            return attributes.reduce(Data(capacity: size), { $0.0 + NetlinkAttribute(type: $0.1.key, payload: $0.1.value).paddedData })
+        }
+    }
+    
+    final class AttributeContainer {
+        
+        var data: Data
+        
+        fileprivate init(_ data: Data = Data()) {
             
-            return data
+            self.data = data
+        }
+    }
+    
+    enum Container {
+        
+        case attributes(AttributesContainer)
+        case attribute(AttributeContainer)
+        
+        var data: Data {
+            
+            switch self {
+            case let .attributes(container):
+                return container.data
+            case let .attribute(container):
+                return container.data
+            }
         }
     }
 }
@@ -257,16 +296,25 @@ internal extension NetlinkAttributeEncoder.Encoder {
         
         typealias Key = K
         
+        // MARK: - Properties
+        
         /// A reference to the encoder we're writing to.
         let encoder: NetlinkAttributeEncoder.Encoder
         
         /// The path of coding keys taken to get to this point in encoding.
         let codingPath: [CodingKey]
         
-        init(referencing encoder: NetlinkAttributeEncoder.Encoder) {
+        /// A reference to the container we're reading from.
+        let container: AttributesContainer
+        
+        // MARK: - Initialization
+        
+        init(referencing encoder: NetlinkAttributeEncoder.Encoder,
+             wrapping container: AttributesContainer) {
             
             self.encoder = encoder
             self.codingPath = encoder.codingPath
+            self.container = container
         }
         
         // MARK: - Methods
@@ -306,11 +354,9 @@ internal extension NetlinkAttributeEncoder.Encoder {
             self.encoder.codingPath.append(key)
             defer { self.encoder.codingPath.removeLast() }
             
-            let type = try encoder.attributeType(for: key)
-            
             let data = try encoder.boxEncodable(value)
             
-            encoder.stack.append(NetlinkAttribute(type: type, payload: data))
+            try setValue(data, for: key)
         }
         
         func nestedContainer<NestedKey>(keyedBy keyType: NestedKey.Type, forKey key: K) -> KeyedEncodingContainer<NestedKey> where NestedKey : CodingKey {
@@ -340,11 +386,97 @@ internal extension NetlinkAttributeEncoder.Encoder {
             self.encoder.codingPath.append(key)
             defer { self.encoder.codingPath.removeLast() }
             
-            let type = try encoder.attributeType(for: key)
-            
             let data = encoder.box(value)
             
-            encoder.stack.append(NetlinkAttribute(type: type, payload: data))
+            try setValue(data, for: key)
+        }
+        
+        private func setValue(_ value: Data, for key: Key) throws {
+            
+            encoder.log?("Will encode value for key \(key.stringValue) at path \"\(encoder.codingPathString)\"")
+            
+            let type = try encoder.attributeType(for: key)
+            
+            assert(self.container.attributes[type] == nil, "Value already encoded")
+            
+            self.container.attributes[type] = value
+        }
+    }
+}
+
+// MARK: - SingleValueEncodingContainer
+
+internal extension NetlinkAttributeEncoder.Encoder {
+    
+    final class AttributeSingleValueEncodingContainer: SingleValueEncodingContainer {
+        
+        // MARK: - Properties
+        
+        /// A reference to the encoder we're writing to.
+        let encoder: NetlinkAttributeEncoder.Encoder
+        
+        /// The path of coding keys taken to get to this point in encoding.
+        let codingPath: [CodingKey]
+        
+        /// A reference to the container we're reading from.
+        let container: AttributeContainer
+        
+        /// Whether the data has been written
+        private var didWrite = false
+        
+        // MARK: - Initialization
+        
+        init(referencing encoder: NetlinkAttributeEncoder.Encoder,
+             wrapping container: AttributeContainer) {
+            
+            self.encoder = encoder
+            self.codingPath = encoder.codingPath
+            self.container = container
+        }
+        
+        // MARK: - Methods
+        
+        func encodeNil() throws { write(encoder.box(Null())) }
+        
+        func encode(_ value: Bool) throws { write(encoder.box(value)) }
+        
+        func encode(_ value: String) throws { write(encoder.box(value)) }
+        
+        func encode(_ value: Double) throws { write(encoder.box(value)) }
+        
+        func encode(_ value: Float) throws { write(encoder.box(value)) }
+        
+        func encode(_ value: Int) throws { write(encoder.box(Int32(value))) }
+        
+        func encode(_ value: Int8) throws { write(encoder.box(value)) }
+        
+        func encode(_ value: Int16) throws { write(encoder.box(value)) }
+        
+        func encode(_ value: Int32) throws { write(encoder.box(value)) }
+        
+        func encode(_ value: Int64) throws { write(encoder.box(value)) }
+        
+        func encode(_ value: UInt) throws { write(encoder.box(UInt32(value))) }
+        
+        func encode(_ value: UInt8) throws { write(encoder.box(value)) }
+        
+        func encode(_ value: UInt16) throws { write(encoder.box(value)) }
+        
+        func encode(_ value: UInt32) throws { write(encoder.box(value)) }
+        
+        func encode(_ value: UInt64) throws { write(encoder.box(value)) }
+        
+        func encode <T: Encodable> (_ value: T) throws { write(try encoder.boxEncodable(value)) }
+        
+        // MARK: - Private Methods
+        
+        private func write(_ data: Data) {
+            
+            assert(didWrite == false, "Data already written")
+            
+            self.container.data = data
+            
+            self.didWrite = true
         }
     }
 }

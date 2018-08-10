@@ -471,14 +471,12 @@ internal extension NetlinkAttributeDecoder {
             
             // log
             decoder.log?("Will read value for key \(key.stringValue) at path \"\(decoder.codingPathString)\"")
-        
             
             // get value
             return container.first { $0.type == NetlinkAttributeType(codingKey: key) }
         }
     }
 }
-
 
 // MARK: - SingleValueDecodingContainer
 
