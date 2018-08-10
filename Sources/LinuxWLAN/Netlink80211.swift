@@ -95,9 +95,9 @@ internal extension Netlink80211 {
             try socket.subscribe(to: scanGroup.identifier)
             defer { try? socket.unsubscribe(from: scanGroup.identifier) }
             
-            // Add message attribute, specify which interface to use.
-            let interfaceAttribute = NetlinkAttribute(value: UInt32(interfaceIndex),
-                                                      type: NetlinkAttributeType.NL80211.interfaceIndex)
+            let command = NL80211TriggerScanCommand(interface: UInt32(interfaceIndex))
+            let encoder = NetlinkAttributeEncoder()
+            let commandData = try encoder.encode(command)
             
             // Setup which command to run.
             let message = NetlinkGenericMessage(type: NetlinkMessageType(rawValue: UInt16(driver.identifier.rawValue)),
@@ -106,7 +106,7 @@ internal extension Netlink80211 {
                                                 process: getpid(),
                                                 command: NetlinkGenericCommand.NL80211.triggerScan,
                                                 version: 0,
-                                                payload: interfaceAttribute.paddedData)
+                                                payload: commandData)
             
             // Send the message.
             try socket.send(message.data)
@@ -137,8 +137,9 @@ internal extension Netlink80211 {
         func scanResults() throws -> [WLANNetwork] {
             
             // Add message attribute, specify which interface to use.
-            let attribute = NetlinkAttribute(value: UInt32(interfaceIndex),
-                                             type: NetlinkAttributeType.NL80211.interfaceIndex)
+            let command = NL80211GetScanResultsCommand(interface: UInt32(interfaceIndex))
+            let encoder = NetlinkAttributeEncoder()
+            let commandData = try encoder.encode(command)
             
             // Setup which command to run.
             let message = NetlinkGenericMessage(type: NetlinkMessageType(rawValue: UInt16(driver.identifier.rawValue)),
@@ -147,7 +148,7 @@ internal extension Netlink80211 {
                                                 process: getpid(),
                                                 command: NetlinkGenericCommand.NL80211.getScan,
                                                 version: 0,
-                                                payload: attribute.paddedData)
+                                                payload: commandData)
             
             // Send the message.
             try socket.send(message.data)

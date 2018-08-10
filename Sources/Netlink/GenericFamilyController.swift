@@ -60,10 +60,9 @@ public extension NetlinkSocket {
         guard netlinkProtocol == .generic
             else { throw NetlinkSocketError.invalidProtocol }
         
-        //let command = NetlinkGetGenericFamilyIdentifierCommand(name: name)
-        
-        let attribute = NetlinkAttribute(value: name.rawValue,
-                                         type: NetlinkAttributeType.Generic.Controller.familyName)
+        let command = NetlinkGetGenericFamilyIdentifierCommand(name: name)
+        let encoder = NetlinkAttributeEncoder()
+        let commandData = try encoder.encode(command)
         
         let message = NetlinkGenericMessage(type: NetlinkMessageType(rawValue: UInt16(GENL_ID_CTRL)),
                                             flags: .request,
@@ -71,7 +70,7 @@ public extension NetlinkSocket {
                                             process: 0, // kernel
                                             command: .getFamily,
                                             version: 1,
-                                            payload: attribute.paddedData)
+                                            payload: commandData)
         
         // send message to kernel
         try send(message.data)
@@ -262,6 +261,7 @@ extension NetlinkGenericFamilyController.MulticastGroup: Codable {
         
         var container = encoder.container(keyedBy: CodingKeys.self)
         
-        try container.encode(name.rawValue, forKey: .name)
+        try container.encode(identifier, forKey: .identifier)
+        try container.encode(name, forKey: .name)
     }
 }

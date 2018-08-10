@@ -38,7 +38,6 @@ public struct NetlinkAttributeDecoder {
         let attributes = try decode(data)
         
         let decoder = Decoder(referencing: .attributes(attributes),
-                              at: [],
                               userInfo: userInfo,
                               log: log)
         
@@ -472,14 +471,12 @@ internal extension NetlinkAttributeDecoder {
             
             // log
             decoder.log?("Will read value for key \(key.stringValue) at path \"\(decoder.codingPathString)\"")
-        
             
             // get value
             return container.first { $0.type == NetlinkAttributeType(codingKey: key) }
         }
     }
 }
-
 
 // MARK: - SingleValueDecodingContainer
 
