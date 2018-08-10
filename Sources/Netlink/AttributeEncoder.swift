@@ -249,15 +249,15 @@ internal extension NetlinkAttributeEncoder.Encoder {
     
     final class AttributesContainer {
         
-        var attributes = [NetlinkAttributeType: Data]()
+        var attributes = [NetlinkAttribute]()
         
         fileprivate init() { }
         
         var data: Data {
             
-            let size = attributes.reduce(0, { $0.0 + NetlinkAttribute(type: $0.1.key, payload: $0.1.value).paddedLength })
+            let size = attributes.reduce(0, { $0.0 + $0.1.paddedLength })
             
-            return attributes.reduce(Data(capacity: size), { $0.0 + NetlinkAttribute(type: $0.1.key, payload: $0.1.value).paddedData })
+            return attributes.reduce(Data(capacity: size), { $0.0 + $0.1.paddedData })
         }
     }
     
@@ -397,9 +397,7 @@ internal extension NetlinkAttributeEncoder.Encoder {
             
             let type = try encoder.attributeType(for: key)
             
-            assert(self.container.attributes[type] == nil, "Value already encoded")
-            
-            self.container.attributes[type] = value
+            self.container.attributes.append(NetlinkAttribute(type: type, payload: value))
         }
     }
 }
@@ -571,7 +569,7 @@ internal extension NetlinkAttributeEncoder.Encoder {
             
             let index = NetlinkAttributeType(rawValue: UInt16(count))
             
-            self.container.attributes[index] = data
+            self.container.attributes.append(NetlinkAttribute(type: index, payload: data))
         }
     }
 }
