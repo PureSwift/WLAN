@@ -10,12 +10,6 @@ import Foundation
 import XCTest
 @testable import WLAN
 
-#if os(macOS)
-@testable import DarwinWLAN
-#elseif os(Linux)
-@testable import LinuxWLAN
-#endif
-
 final class WLANTests: XCTestCase {
     
     static var allTests = [

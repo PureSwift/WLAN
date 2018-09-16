@@ -10,35 +10,22 @@ let package = Package(
     name: "WLAN",
     targets: [
         Target(
-            name: "WLAN",
-            dependencies: [
-                
-            ]),
+            name: "WLAN"
+            ),
         Target(
             name: "DarwinWLAN",
             dependencies: [
                 .Target(name: "WLAN")
             ]),
         Target(
-            name: "Netlink",
-            dependencies: [
-                .Target(name: "WLAN"),
-                .Target(name: "CLinuxWLAN"),
-            ]),
-        Target(
             name: "LinuxWLAN",
             dependencies: [
-                .Target(name: "WLAN"),
-                .Target(name: "CLinuxWLAN"),
-                .Target(name: "Netlink")
+                .Target(name: "WLAN")
             ]),
-        Target(
-            name: "CLinuxWLAN"),
         Target(
             name: "WLANTests",
             dependencies: [
-                .Target(name: "WLAN"),
-                nativeDependency
+                .Target(name: "WLAN")
             ]),
         Target(
             name: "wirelesstool",
@@ -48,7 +35,8 @@ let package = Package(
             ])
     ],
     dependencies: [
-        .Package(url: "https://github.com/PureSwift/Codable.git", majorVersion: 1)
+        .Package(url: "https://github.com/PureSwift/CLinuxWLAN.git", majorVersion: 1),
+        .Package(url: "https://github.com/PureSwift/Netlink.git", majorVersion: 1)
     ],
     exclude: ["Xcode", "Carthage"]
 )
