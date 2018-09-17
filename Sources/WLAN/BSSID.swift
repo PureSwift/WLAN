@@ -93,39 +93,33 @@ extension BSSID: RawRepresentable {
         guard rawValue.utf8.count == 17
             else { return nil }
         
-        var bytes = Data(repeating: 0, count: 6)
+        var bytes: ByteValue = (0, 0, 0, 0, 0, 0)
         
-        // parse bytes
-        guard rawValue.withCString({ (cString) -> Bool in
+        let components = rawValue.components(separatedBy: ":")
+        
+        guard components.count == 6
+            else { return nil }
+        
+        for (index, string) in components.enumerated() {
             
-            // parse
-            var cString = cString
-            for index in (0 ..< 6) {
-                
-                let number = strtol(cString, nil, 16)
-                
-                guard let byte = UInt8(exactly: number)
-                    else { return false }
-                
-                bytes[index] = byte
-                cString = cString.advanced(by: 3)
+            guard let byte = UInt8(string, radix: 16)
+                else { return nil }
+            
+            withUnsafeMutablePointer(to: &bytes) {
+                $0.withMemoryRebound(to: UInt8.self, capacity: 6) {
+                    $0.advanced(by: index).pointee = byte
+                }
             }
-            
-            return true
-            
-        }) else { return nil }
+        }
         
-        guard let bigEndian = BSSID(data: Data(bytes))
-            else { fatalError("Could not initialize \(BSSID.self) from \(bytes)") }
-        
-        self.init(bigEndian: bigEndian)
+        self.init(bigEndian: BSSID(bytes: bytes))
     }
     
     public var rawValue: String {
         
         let bytes = self.bigEndian.bytes
         
-        return String(format: "%x:%x:%x:%x:%x:%x", bytes.0, bytes.1, bytes.2, bytes.3, bytes.4, bytes.5).uppercased()
+        return String(format: "%02X:%02X:%02X:%02X:%02X:%02X", bytes.0, bytes.1, bytes.2, bytes.3, bytes.4, bytes.5)
     }
 }
 

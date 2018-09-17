@@ -14,6 +14,8 @@ import Darwin.C
 import Foundation
 import WLAN
 import Netlink
+import NetlinkGeneric
+import Netlink80211
 import CLinuxWLAN
 
 public final class Netlink80211 {
@@ -28,11 +30,19 @@ public final class Netlink80211 {
      */
     public func scan(with ssid: SSID?, for interface: WLANInterface) throws -> [WLANNetwork] {
         
-        let scanOperation = try ScanOperation(interface: interface)
+        do {
+            
+            let scanOperation = try ScanOperation(interface: interface)
+            
+            try scanOperation.triggerScan(with: ssid)
+            
+            return try scanOperation.scanResults()
+        }
         
-        try scanOperation.triggerScan(with: ssid)
-        
-        return try scanOperation.scanResults()
+        catch let error as NetlinkErrorMessage {
+            
+            throw error.error ?? error
+        }
     }
 }
 
@@ -166,7 +176,7 @@ internal extension Netlink80211 {
                 
                 let ssid = SSID(data: $0.bss.informationElements[2 ..< 2 + ssidLength]) ?? ""
                 
-                return WLANNetwork(ssid: ssid, bssid: $0.bss.bssid)
+                return WLANNetwork(ssid: ssid, bssid: BSSID(bigEndian: BSSID(bytes: $0.bss.bssid.bytes)))
             }
         }
     }
