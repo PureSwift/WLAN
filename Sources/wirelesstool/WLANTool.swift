@@ -37,8 +37,8 @@ struct WLANTool {
             else { throw CommandError.noInterface }
     
         print("Interface: \(interface)")
-        let networks = try await manager.scan(for: nil, with: interface)
-    
+        let networks = try await manager.scan(with: interface)
+        
         print("Networks:")
         networks.forEach { print("\($0.ssid) \($0.bssid?.description ?? "")") }
     }

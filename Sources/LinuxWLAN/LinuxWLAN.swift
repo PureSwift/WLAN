@@ -99,9 +99,9 @@ public actor LinuxWLANManager: WLANManager {
     
     // MARK: - Internal Methods
     
-    internal subscript(interfaceName: WLANInterface) -> NL80211Interface {
+    internal func interface(for interfaceName: WLANInterface) throws -> NL80211Interface {
         guard let interface = interfaceCache[interfaceName] else {
-            fatalError("Unknown network \(interfaceName.name)")
+            throw WLANError.invalidInterface(interfaceName)
         }
         return interface
     }

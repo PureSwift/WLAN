@@ -28,11 +28,11 @@ public extension LinuxWLANManager {
      - Parameter ssid: The SSID for which to scan.
      - Parameter interface: The network interface.
      */
-    func scan(for ssid: SSID? = nil, with interface: WLANInterface) async throws -> [WLANNetwork] {
+    func scan(with interface: WLANInterface) async throws -> [WLANNetwork] {
         do {
             // start scanning on wireless interface.
-            let interface = self[interface]
-            try await triggerScan(with: ssid, interface: interface.id)
+            let interface = try self.interface(for: interface)
+            try await triggerScan(interface: interface.id)
             
             // wait
             var messages = [NetlinkGenericMessage]()
@@ -58,7 +58,7 @@ public extension LinuxWLANManager {
 internal extension LinuxWLANManager {
     
     /// Issue NL80211_CMD_TRIGGER_SCAN to the kernel and wait for it to finish.
-    func triggerScan(with ssid: SSID? = nil, interface: UInt32) async throws {
+    func triggerScan(interface: UInt32) async throws {
         
         // register for `scan` multicast group
         guard let scanGroup = controller.multicastGroups.first(where: { $0.name == NetlinkGenericMulticastGroupName.NL80211.scan })

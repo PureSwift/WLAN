@@ -30,10 +30,9 @@ public protocol WLANManager {
      
      If ssid parameter is present, a directed scan will be performed by the interface, otherwise a broadcast scan will be performed. This method will block for the duration of the scan.
      
-     - Parameter ssid: The SSID for which to scan.
      - Parameter interface: The network interface.
      */
-    func scan(for ssid: SSID?, with interface: WLANInterface) async throws -> [WLANNetwork]
+    func scan(with interface: WLANInterface) async throws -> [WLANNetwork]
     
     /**
      Sets the interface power state.

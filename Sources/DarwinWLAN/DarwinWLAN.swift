@@ -21,6 +21,8 @@ public final class DarwinWLANManager: WLANManager {
     
     internal let client: CWWiFiClient
     
+    internal let queue = DispatchQueue(label: "org.pureswift.DarwinWLAN")
+    
     // MARK: - Initialization
     
     public init() {
@@ -32,11 +34,15 @@ public final class DarwinWLANManager: WLANManager {
     
     /// Returns the default Wi-Fi interface.
     public var interface: WLANInterface? {
-        
-        guard let interface = client.interface()
-            else { return nil }
-        
-        return WLANInterface(interface)
+        get async {
+            return await withCheckedContinuation { continuation in
+                queue.async { [unowned self] in
+                    let interface = self.client.interface()
+                        .map { WLANInterface($0) }
+                    continuation.resume(returning: interface)
+                }
+            }
+        }
     }
     
     /**
@@ -45,7 +51,15 @@ public final class DarwinWLANManager: WLANManager {
      - Returns: An array of `WLANInterface`, representing all of the available Wi-Fi interfaces in the system.
      */
     public var interfaces: [WLANInterface] {
-        return client.interfaces()?.map { WLANInterface($0) } ?? []
+        get async {
+            return await withCheckedContinuation { continuation in
+                queue.async { [unowned self] in
+                    let interfaces = (self.client.interfaces() ?? [])
+                        .map { WLANInterface($0) }
+                    continuation.resume(returning: interfaces)
+                }
+            }
+        }
     }
     
     /**
@@ -54,8 +68,18 @@ public final class DarwinWLANManager: WLANManager {
      - Parameter power: A Boolean value corresponding to the power state. NO indicates the "OFF" state.
      - Parameter interface: The network interface.
      */
-    public func setPower(_ power: Bool, for interface: WLANInterface) throws {
-        try client.interface(for: interface).setPower(power)
+    public func setPower(_ power: Bool, for interface: WLANInterface) async throws {
+        return try await withCheckedThrowingContinuation { continuation in
+            queue.async { [unowned self] in
+                do {
+                    let interface = try self.client.interface(for: interface)
+                    try interface.setPower(power)
+                    continuation.resume()
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
     }
     
     /**
@@ -69,17 +93,23 @@ public final class DarwinWLANManager: WLANManager {
      - Parameter interface: The network interface.
      */
     public func scan(
-        for ssid: SSID? = nil,
         with interface: WLANInterface
     ) async throws -> [WLANNetwork] {
-        
-        let wlanInterface = try client.interface(for: interface)
-        try wlanInterface.scanForNetworks(withSSID: ssid?.data)
-        let cachedScanResults = wlanInterface.cachedScanResults() ?? []
-        return cachedScanResults
-            .lazy
-            .map { WLANNetwork($0) }
-            .sorted(by: { $0.ssid.description < $1.ssid.description })
+        return try await withCheckedThrowingContinuation { continuation in
+            queue.async { [unowned self] in
+                do {
+                    let interface = try self.client.interface(for: interface)
+                    try interface.scanForNetworks(withSSID: nil)
+                    let cachedScanResults = (interface.cachedScanResults() ?? [])
+                        .lazy
+                        .map { WLANNetwork($0) }
+                        .sorted(by: { $0.ssid.description < $1.ssid.description })
+                    continuation.resume(returning: cachedScanResults)
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
     }
     
     /**
@@ -89,14 +119,23 @@ public final class DarwinWLANManager: WLANManager {
      - Parameter password: The network passphrase or key. Required for association to WEP, WPA Personal, and WPA2 Personal networks.
      - Parameter interface: The network interface.
      */
-    public func associate(to network: WLANNetwork,
-                          password: String? = nil,
-                          for interface: WLANInterface) throws {
-        
-        let wlanInterface = try client.interface(for: interface)
-        let wlanNetwork = try wlanInterface.network(for: network)
-        
-        try wlanInterface.associate(to: wlanNetwork, password: password)
+    public func associate(
+        to network: WLANNetwork,
+        password: String? = nil,
+        for interface: WLANInterface
+    ) async throws {
+        return try await withCheckedThrowingContinuation { continuation in
+            queue.async { [unowned self] in
+                do {
+                    let interface = try self.client.interface(for: interface)
+                    let network = try interface.network(for: network)
+                    try interface.associate(to: network, password: password)
+                    continuation.resume()
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
     }
     
     /**
@@ -104,8 +143,18 @@ public final class DarwinWLANManager: WLANManager {
      
      This method has no effect if the interface is not associated to a network.
      */
-    public func disassociate(interface: WLANInterface) throws {
-        try client.interface(for: interface).disassociate()
+    public func disassociate(interface: WLANInterface) async throws {
+        return try await withCheckedThrowingContinuation { continuation in
+            queue.async { [unowned self] in
+                do {
+                    let interface = try self.client.interface(for: interface)
+                    interface.disassociate()
+                    continuation.resume()
+                } catch {
+                    continuation.resume(throwing: error)
+                }
+            }
+        }
     }
 }
 
