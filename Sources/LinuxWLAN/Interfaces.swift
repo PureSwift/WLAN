@@ -18,17 +18,16 @@ internal extension LinuxWLANManager {
     func getInterface(_ interface: UInt32) async throws -> NL80211Interface {
         // Setup which command to run.
         let command = NL80211GetInterfaceCommand(id: interface)
-        let message = try newMessage(command, flags: [.dump])
+        let message = try newMessage(command, flags: [.request])
         // Send the message.
         try await socket.send(message.data)
         // Retrieve the kernel's answer
-        let recievedData = try await socket.recieve()
+        let messages = try await socket.recieve(NetlinkGenericMessage.self)
         let decoder = NetlinkAttributeDecoder()
         // parse response
-        guard let messages = try? NetlinkGenericMessage.from(data: recievedData),
-            let response = messages.first,
+        guard let response = messages.first,
             let interface = try? decoder.decode(NL80211Interface.self, from: response)
-            else { throw NetlinkSocketError.invalidData(recievedData) }
+            else { throw NetlinkSocketError.invalidData(Data()) }
         return interface
     }
 }
