@@ -12,11 +12,6 @@ import XCTest
 
 final class WLANTests: XCTestCase {
     
-    static var allTests = [
-        ("testSSID", testSSID),
-        ("testBSSID", testBSSID)
-    ]
-    
     func testSSID() {
         
         XCTAssertNil(SSID(string: ""), "SSID must be 1-32 octets")
