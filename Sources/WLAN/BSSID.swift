@@ -35,7 +35,6 @@ public struct BSSID: ByteValue {
     // MARK: - Initialization
     
     public init(bytes: ByteValue = (0, 0, 0, 0, 0, 0)) {
-        
         self.bytes = bytes
     }
 }

@@ -30,10 +30,24 @@ public extension LinuxWLANManager {
      */
     func scan(for ssid: SSID? = nil, with interface: WLANInterface) async throws -> [WLANNetwork] {
         do {
-            // Use this wireless interface for scanning.
+            // start scanning on wireless interface.
             let interfaceIndex = try NetworkInterface.index(for: NetworkInterface(name: interface.name))
             try await triggerScan(with: ssid, interface: interfaceIndex)
-            return try await scanResults(interface: interfaceIndex)
+            
+            // wait
+            var messages = [NetlinkGenericMessage]()
+            repeat {
+                // attempt to read messages
+                messages += try await socket.recieve(NetlinkGenericMessage.self)
+            } while (messages.contains(where: { $0.command == NetlinkGenericCommand.NL80211.newScanResults }) == false)
+            
+            // collect results
+            let scanResults = try await scanResults(interface: interfaceIndex)
+            return scanResults.map {
+                let ssidLength = min(Int($0.bss.informationElements[1]), 32)
+                let ssid = SSID(data: $0.bss.informationElements[2 ..< 2 + ssidLength]) ?? ""
+                return WLANNetwork(ssid: ssid, bssid: BSSID(bigEndian: BSSID(bytes: $0.bss.bssid.bytes)))
+            }
         }
         catch let error as NetlinkErrorMessage {
             throw error.error ?? error
@@ -69,16 +83,10 @@ internal extension LinuxWLANManager {
         
         // Send the message.
         try await socket.send(message.data)
-        
-        var messages = [NetlinkGenericMessage]()
-        repeat {
-            // attempt to read messages
-            messages += try await socket.recieve(NetlinkGenericMessage.self)
-        } while (messages.contains(where: { $0.command == NetlinkGenericCommand.NL80211.newScanResults }) == false)
     }
     
     /// Issue NL80211_CMD_GET_SCAN.
-    func scanResults(interface interfaceIndex: UInt) async throws -> [WLANNetwork] {
+    func scanResults(interface interfaceIndex: UInt) async throws -> [NL80211ScanResult] {
         
         // Add message attribute, specify which interface to use.
         let command = NL80211GetScanResultsCommand(interface: UInt32(interfaceIndex))
@@ -100,12 +108,6 @@ internal extension LinuxWLANManager {
         // Retrieve the kernel's answer
         let messages = try await socket.recieve(NetlinkGenericMessage.self)
         let decoder = NetlinkAttributeDecoder()
-        let scanResults = try messages.map { try decoder.decode(NL80211ScanResult.self, from: $0) }
-        
-        return scanResults.map {
-            let ssidLength = min(Int($0.bss.informationElements[1]), 32)
-            let ssid = SSID(data: $0.bss.informationElements[2 ..< 2 + ssidLength]) ?? ""
-            return WLANNetwork(ssid: ssid, bssid: BSSID(bigEndian: BSSID(bytes: $0.bss.bssid.bytes)))
-        }
+        return try messages.map { try decoder.decode(NL80211ScanResult.self, from: $0) }
     }
 }

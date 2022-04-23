@@ -33,6 +33,8 @@ public actor LinuxWLANManager: WLANManager {
     
     internal private(set) var sequenceNumber: UInt32 = 0
     
+    internal private(set) var interfaceCache = [WLANInterface: NL80211Interface]()
+    
     // MARK: - Initialization
     
     public init() async throws {
@@ -48,7 +50,11 @@ public actor LinuxWLANManager: WLANManager {
     // MARK: - Methods
     
     /// Returns the default Wi-Fi interface.
-    public var interface: WLANInterface? { return nil }
+    public var interface: WLANInterface? {
+        get async {
+            return await interfaces.first
+        }
+    }
     
     /**
      Returns all available Wi-Fi interfaces.
@@ -56,7 +62,30 @@ public actor LinuxWLANManager: WLANManager {
      - Returns: An array of `WLANInterface`, representing all of the available Wi-Fi interfaces in the system.
      */
     public var interfaces: [WLANInterface] {
-        return []
+        get async {
+            do {
+                try await refreshInterfaces()
+                return interfaceCache
+                    .lazy
+                    .sorted(by: { $0.value.id < $1.value.id })
+                    .map { $0.key }
+            }
+            catch {
+                assertionFailure("Unable to get interfaces. \(error.localizedDescription)")
+                return []
+            }
+        }
+    }
+    
+    internal func refreshInterfaces() async throws {
+        let interfaces = try await getInterfaces()
+        var cache = [WLANInterface: NL80211Interface]()
+        cache.reserveCapacity(interfaces.count)
+        for interface in interfaces {
+            let key = WLANInterface(name: interface.name)
+            cache[key] = interface
+        }
+        self.interfaceCache = cache
     }
     
     /**
