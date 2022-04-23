@@ -7,7 +7,7 @@
 //
 
 /// Encapsulates an IEEE 802.11 interface.
-public struct WLANInterface {
+public struct WLANInterface: Equatable, Hashable, Codable {
     
     /// The BSD name of the interface.
     public let name: String
@@ -18,32 +18,11 @@ public struct WLANInterface {
     }
 }
 
-// MARK: - Equatable
-
-extension WLANInterface: Equatable {
-    
-    public static func == (rhs: WLANInterface, lhs: WLANInterface) -> Bool {
-        
-        return rhs.name == lhs.name
-    }
-}
-
-// MARK: - Hashable
-
-extension WLANInterface: Hashable {
-    
-    public var hashValue: Int {
-        
-        return name.hashValue
-    }
-}
-
 // MARK: - CustomStringConvertible
 
 extension WLANInterface: CustomStringConvertible {
     
     public var description: String {
-        
         return name
     }
 }

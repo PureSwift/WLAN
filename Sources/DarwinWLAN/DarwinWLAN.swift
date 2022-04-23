@@ -6,7 +6,7 @@
 //  Copyright © 2018 PureSwift. All rights reserved.
 //
 
-#if os(macOS)
+#if canImport(CoreWLAN)
 
 import Foundation
 import CoreWLAN
@@ -23,9 +23,8 @@ public final class DarwinWLANManager: NSObject, WLANManager {
     
     public override init() {
         
-        self.client = CWWiFiClient()! // Apple, please annotate this API
+        self.client = CWWiFiClient()
         super.init()
-        
         self.client.delegate = self
     }
     
@@ -46,7 +45,6 @@ public final class DarwinWLANManager: NSObject, WLANManager {
      - Returns: An array of `WLANInterface`, representing all of the available Wi-Fi interfaces in the system.
      */
     public var interfaces: [WLANInterface] {
-        
         return client.interfaces()?.map { WLANInterface($0) } ?? []
     }
     
@@ -57,7 +55,6 @@ public final class DarwinWLANManager: NSObject, WLANManager {
      - Parameter interface: The network interface.
      */
     public func setPower(_ power: Bool, for interface: WLANInterface) throws {
-        
         try client.interface(for: interface).setPower(power)
     }
     
@@ -69,12 +66,10 @@ public final class DarwinWLANManager: NSObject, WLANManager {
      - Parameter ssid: The SSID for which to scan.
      - Parameter interface: The network interface.
      */
-    public func scan(with ssid: SSID? = nil, for interface: WLANInterface) throws -> [WLANNetwork] {
+    public func scan(for ssid: SSID? = nil, with interface: WLANInterface) throws -> [WLANNetwork] {
         
         let wlanInterface = try client.interface(for: interface)
-            
         try wlanInterface.scanForNetworks(withSSID: ssid?.data)
-        
         return wlanInterface.cachedScanResults()?.map { WLANNetwork($0) } ?? []
     }
     
@@ -101,7 +96,6 @@ public final class DarwinWLANManager: NSObject, WLANManager {
      This method has no effect if the interface is not associated to a network.
      */
     public func disassociate(interface: WLANInterface) throws {
-        
         try client.interface(for: interface).disassociate()
     }
 }

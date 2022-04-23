@@ -28,15 +28,10 @@ public final class LinuxWLANManager: WLANManager {
     /// Socket handle to kernel network interfaces subsystem.
     internal let wirelessExtensions: LinuxWirelessExtensions
     
-    /// Netlink commands and operations.
-    internal let netlink: Netlink80211
-    
     // MARK: - Initialization
     
     public init() throws {
-        
         self.wirelessExtensions = try LinuxWirelessExtensions()
-        self.netlink = Netlink80211()
     }
     
     // MARK: - Methods
@@ -50,21 +45,7 @@ public final class LinuxWLANManager: WLANManager {
      - Returns: An array of `WLANInterface`, representing all of the available Wi-Fi interfaces in the system.
      */
     public var interfaces: [WLANInterface] {
-        
         return wirelessExtensions.interfaces
-    }
-    
-    /**
-     Scans for networks.
-     
-     If ssid parameter is present, a directed scan will be performed by the interface, otherwise a broadcast scan will be performed. This method will block for the duration of the scan.
-     
-     - Parameter ssid: The SSID for which to scan.
-     - Parameter interface: The network interface.
-     */
-    public func scan(with ssid: SSID?, for interface: WLANInterface) throws -> [WLANNetwork] {
-        
-        return try netlink.scan(with: ssid, for: interface)
     }
     
     /**
@@ -75,7 +56,6 @@ public final class LinuxWLANManager: WLANManager {
      */
     public func setPower(_ power: Bool, for interface: WLANInterface) throws {
         
-        
     }
     
     /**
@@ -84,7 +64,6 @@ public final class LinuxWLANManager: WLANManager {
      This method has no effect if the interface is not associated to a network.
      */
     public func disassociate(interface: WLANInterface) throws {
-        
         
     }
 }

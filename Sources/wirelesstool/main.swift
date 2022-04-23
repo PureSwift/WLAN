@@ -45,10 +45,10 @@ func run(arguments: [String] = CommandLine.arguments) throws {
     print("Wireless Extension Name: \(name)")
     #endif
     
-    let networks = try wlanManager.scan(with: nil, for: interface)
+    let networks = try wlanManager.scan(for: nil, with: interface)
     
     print("Networks:")
-    networks.forEach { print("\($0.ssid) (\($0.bssid))") }
+    networks.forEach { print("\($0.ssid) (\($0.bssid?.description ?? "N/A"))") }
 }
 
 do { try run() }

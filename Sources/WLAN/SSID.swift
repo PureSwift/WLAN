@@ -13,7 +13,7 @@ import Foundation
  
   An SSID is a unique ID that consists of 1-32 octets and is used for naming wireless networks. When multiple wireless networks overlap in a certain location, SSIDs make sure that data gets sent to the correct destination.
  */
-public struct SSID {
+public struct SSID: Equatable, Hashable {
     
     /// Maximum Length
     internal static let length = (min: 1, max: 32)
@@ -39,26 +39,6 @@ public struct SSID {
             else { return nil }
         
         self.init(data: data)
-    }
-}
-
-// MARK: - Equatable
-
-extension SSID: Equatable {
-    
-    public static func == (lhs: SSID, rhs: SSID) -> Bool {
-        
-        return lhs.data == rhs.data
-    }
-}
-
-// MARK: - Hashable
-
-extension SSID: Hashable {
-    
-    public var hashValue: Int {
-        
-        return data.hashValue
     }
 }
 

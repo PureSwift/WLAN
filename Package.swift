@@ -1,42 +1,98 @@
+// swift-tools-version:5.5
 import PackageDescription
 
-#if os(macOS)
-let nativeDependency: Target.Dependency = .Target(name: "DarwinWLAN")
-#elseif os(Linux)
-let nativeDependency: Target.Dependency = .Target(name: "LinuxWLAN")
-#endif
+let libraryType: PackageDescription.Product.Library.LibraryType = .static
 
 let package = Package(
     name: "WLAN",
-    targets: [
-        Target(
-            name: "WLAN"
-            ),
-        Target(
+    platforms: [
+        .macOS(.v10_15),
+        .iOS(.v13),
+        .watchOS(.v6),
+        .tvOS(.v13),
+    ],
+    products: [
+        .library(
+            name: "WLAN",
+            type: libraryType,
+            targets: ["WLAN"]
+        ),
+        .library(
             name: "DarwinWLAN",
-            dependencies: [
-                .Target(name: "WLAN")
-            ]),
-        Target(
+            type: libraryType,
+            targets: ["DarwinWLAN"]
+        ),
+        .library(
             name: "LinuxWLAN",
-            dependencies: [
-                .Target(name: "WLAN")
-            ]),
-        Target(
-            name: "WLANTests",
-            dependencies: [
-                .Target(name: "WLAN")
-            ]),
-        Target(
-            name: "wirelesstool",
-            dependencies: [
-                .Target(name: "WLAN"),
-                nativeDependency
-            ])
+            type: libraryType,
+            targets: ["LinuxWLAN"]
+        )
     ],
     dependencies: [
-        .Package(url: "https://github.com/PureSwift/CLinuxWLAN.git", majorVersion: 1),
-        .Package(url: "https://github.com/PureSwift/Netlink.git", majorVersion: 1)
+        .package(
+            url: "https://github.com/PureSwift/Netlink.git",
+            .branch("master")
+        )
     ],
-    exclude: ["Xcode", "Carthage"]
+    targets: [
+        .target(
+            name: "WLAN"
+        ),
+        .target(
+            name: "DarwinWLAN",
+            dependencies: [
+                .target(name: "WLAN")
+            ]
+        ),
+        .target(
+            name: "LinuxWLAN",
+            dependencies: [
+                .target(
+                    name: "WLAN"
+                ),
+                .target(
+                    name: "CLinuxWLAN"
+                ),
+                .product(
+                    name: "Netlink",
+                    package: "Netlink"
+                ),
+                .product(
+                    name: "NetlinkGeneric",
+                    package: "Netlink"
+                ),
+                .product(
+                    name: "Netlink80211",
+                    package: "Netlink"
+                )
+            ]
+        ),
+        .target(
+            name: "CLinuxWLAN"
+        ),
+        .executableTarget(
+            name: "wirelesstool",
+            dependencies: [
+                .target(
+                    name: "WLAN"
+                ),
+                .target(
+                    name: "DarwinWLAN",
+                    condition: .when(platforms: [.macOS])
+                ),
+                .target(
+                    name: "LinuxWLAN",
+                    condition: .when(platforms: [.linux])
+                )
+            ]
+        ),
+        .testTarget(
+            name: "WLANTests",
+            dependencies: [
+                .target(
+                    name: "WLAN"
+                ),
+            ]
+        ),
+    ]
 )

@@ -33,7 +33,7 @@ public protocol WLANManager {
      - Parameter ssid: The SSID for which to scan.
      - Parameter interface: The network interface.
      */
-    func scan(with ssid: SSID?, for interface: WLANInterface) throws -> [WLANNetwork]
+    func scan(for ssid: SSID?, with interface: WLANInterface) async throws -> [WLANNetwork]
     
     /**
      Sets the interface power state.
@@ -41,12 +41,12 @@ public protocol WLANManager {
      - Parameter power: A Boolean value corresponding to the power state. NO indicates the "OFF" state.
      - Parameter interface: The network interface.
      */
-    func setPower(_ power: Bool, for interface: WLANInterface) throws
+    func setPower(_ power: Bool, for interface: WLANInterface) async throws
     
     /**
      Disassociates from the current network.
      
      This method has no effect if the interface is not associated to a network.
      */
-    func disassociate(interface: WLANInterface) throws
+    func disassociate(interface: WLANInterface) async throws
 }

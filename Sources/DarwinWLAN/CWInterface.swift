@@ -5,7 +5,7 @@
 //  Created by Alsey Coleman Miller on 7/5/18.
 //
 
-#if os(macOS)
+#if canImport(CoreWLAN)
 
 import Foundation
 import CoreWLAN
@@ -27,7 +27,7 @@ internal extension CWInterface {
     func network(for network: WLANNetwork) throws -> CWNetwork {
         
         guard let wlanNetwork = self.cachedScanResults()?
-            .first(where: { $0.ssidData == network.ssid.data && $0.bssid == network.bssid.description })
+            .first(where: { $0.ssidData == network.ssid.data })
             else { throw WLANError.invalidNetwork(network) }
         
         return wlanNetwork

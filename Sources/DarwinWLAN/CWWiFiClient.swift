@@ -5,7 +5,7 @@
 //  Created by Alsey Coleman Miller on 7/5/18.
 //
 
-#if os(macOS)
+#if canImport(CoreWLAN)
 
 import Foundation
 import CoreWLAN

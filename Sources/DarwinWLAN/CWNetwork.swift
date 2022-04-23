@@ -5,7 +5,7 @@
 //  Created by Alsey Coleman Miller on 7/5/18.
 //
 
-#if os(macOS)
+#if canImport(CoreWLAN)
 
 import Foundation
 import CoreWLAN
@@ -16,10 +16,15 @@ internal extension WLANNetwork {
     init(_ coreWLAN: CWNetwork) {
         
         guard let ssidData = coreWLAN.ssidData,
-            let ssid = SSID(data: ssidData),
-            let bssidString = coreWLAN.bssid,
-            let bssid = BSSID(rawValue: bssidString)
+            let ssid = SSID(data: ssidData)
             else { fatalError("Invalid values") }
+        
+        let bssid: BSSID?
+        if let bssidString = coreWLAN.bssid {
+            bssid = BSSID(rawValue: bssidString)
+        } else {
+            bssid = nil
+        }
         
         self.init(ssid: ssid, bssid: bssid)
     }

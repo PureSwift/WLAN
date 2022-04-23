@@ -8,7 +8,7 @@
 
 #if os(Linux)
 import Glibc
-#elseif os(macOS) || os(iOS) || os(tvOS) || os(watchOS)
+#elseif canImport(Darwin)
 import Darwin
 #endif
 
@@ -43,21 +43,21 @@ public struct BSSID: ByteValue {
 public extension BSSID {
     
     /// The minimum representable value in this type.
-    public static var min: BSSID { return BSSID(bytes: (.min, .min, .min, .min, .min, .min)) }
+    static var min: BSSID { return BSSID(bytes: (.min, .min, .min, .min, .min, .min)) }
     
     /// The maximum representable value in this type.
-    public static var max: BSSID { return BSSID(bytes: (.max, .max, .max, .max, .max, .max)) }
+    static var max: BSSID { return BSSID(bytes: (.max, .max, .max, .max, .max, .max)) }
     
-    public static var zero: BSSID { return .min }
+    static var zero: BSSID { return .min }
 }
 
 // MARK: - Data
 
 public extension BSSID {
     
-    public static var length: Int { return 6 }
+    static var length: Int { return 6 }
     
-    public init?(data: Data) {
+    init?(data: Data) {
         
         guard data.count == BSSID.length
             else { return nil }
@@ -65,7 +65,7 @@ public extension BSSID {
         self.bytes = (data[0], data[1], data[2], data[3], data[4], data[5])
     }
     
-    public var data: Data {
+    var data: Data {
         
         return Data([bytes.0, bytes.1, bytes.2, bytes.3, bytes.4, bytes.5])
     }

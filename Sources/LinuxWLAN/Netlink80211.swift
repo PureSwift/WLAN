@@ -18,7 +18,7 @@ import NetlinkGeneric
 import Netlink80211
 import CLinuxWLAN
 
-public final class Netlink80211 {
+public extension LinuxWLANManager {
     
     /**
      Scans for networks.
@@ -28,27 +28,21 @@ public final class Netlink80211 {
      - Parameter ssid: The SSID for which to scan.
      - Parameter interface: The network interface.
      */
-    public func scan(with ssid: SSID?, for interface: WLANInterface) throws -> [WLANNetwork] {
-        
+    func scan(for ssid: SSID?, with interface: WLANInterface) async throws -> [WLANNetwork] {
         do {
-            
-            let scanOperation = try ScanOperation(interface: interface)
-            
-            try scanOperation.triggerScan(with: ssid)
-            
-            return try scanOperation.scanResults()
+            var scanOperation = try await ScanOperation(interface: interface)
+            try await scanOperation.triggerScan(with: ssid)
+            return try await scanOperation.scanResults()
         }
-        
         catch let error as NetlinkErrorMessage {
-            
             throw error.error ?? error
         }
     }
 }
 
-internal extension Netlink80211 {
+internal extension LinuxWLANManager {
     
-    final class ScanOperation {
+    struct ScanOperation {
         
         enum Error: Swift.Error {
             
@@ -70,23 +64,22 @@ internal extension Netlink80211 {
         
         private var sequence: UInt32 = 0
         
-        private func newSequence() -> UInt32 {
-            
+        private mutating func newSequence() -> UInt32 {
             sequence += 1
             return sequence
         }
         
-        init(interface: WLANInterface) throws {
+        init(interface: WLANInterface) async throws {
             
             // Use this wireless interface for scanning.
             let interfaceIndex = try NetworkInterface.index(for: NetworkInterface(name: interface.name))
             
             // Open socket to kernel.
             // Create file descriptor and bind socket.
-            let netlinkSocket = try NetlinkSocket(.generic)
+            let netlinkSocket = try await NetlinkSocket(.generic)
             
             // Find the "nl80211" driver ID.
-            let driver = try netlinkSocket.resolve(name: .nl80211)  // Find the "nl80211" driver ID.
+            let driver = try await netlinkSocket.resolve(name: .nl80211)  // Find the "nl80211" driver ID.
             
             self.interface = interface
             self.interfaceIndex = interfaceIndex
@@ -95,7 +88,7 @@ internal extension Netlink80211 {
         }
         
         /// Issue NL80211_CMD_TRIGGER_SCAN to the kernel and wait for it to finish.
-        func triggerScan(with ssid: SSID? = nil) throws {
+        mutating func triggerScan(with ssid: SSID? = nil) async throws {
             
             // register for `scan` multicast group
             guard let scanGroup = driver.multicastGroups.first(where: { $0.name == NetlinkGenericMulticastGroupName.NL80211.scan })
@@ -119,13 +112,13 @@ internal extension Netlink80211 {
                                                 payload: commandData)
             
             // Send the message.
-            try socket.send(message.data)
+            try await socket.send(message.data)
             
             var messages = [NetlinkGenericMessage]()
             repeat {
                 
                 // attempt to read messages
-                do { messages += try socket.recieve(NetlinkGenericMessage.self) }
+                do { messages += try await socket.recieve(NetlinkGenericMessage.self) }
                 catch {
                     
                     #if os(Linux)
@@ -144,7 +137,7 @@ internal extension Netlink80211 {
         }
         
         /// Issue NL80211_CMD_GET_SCAN.
-        func scanResults() throws -> [WLANNetwork] {
+        mutating func scanResults() async throws -> [WLANNetwork] {
             
             // Add message attribute, specify which interface to use.
             let command = NL80211GetScanResultsCommand(interface: UInt32(interfaceIndex))
@@ -161,21 +154,16 @@ internal extension Netlink80211 {
                                                 payload: commandData)
             
             // Send the message.
-            try socket.send(message.data)
+            try await socket.send(message.data)
             
             // Retrieve the kernel's answer
-            let messages = try socket.recieve(NetlinkGenericMessage.self)
-            
+            let messages = try await socket.recieve(NetlinkGenericMessage.self)
             let decoder = NetlinkAttributeDecoder()
-            
             let scanResults = try messages.map { try decoder.decode(NL80211ScanResult.self, from: $0) }
             
             return scanResults.map {
-                
                 let ssidLength = min(Int($0.bss.informationElements[1]), 32)
-                
                 let ssid = SSID(data: $0.bss.informationElements[2 ..< 2 + ssidLength]) ?? ""
-                
                 return WLANNetwork(ssid: ssid, bssid: BSSID(bigEndian: BSSID(bytes: $0.bss.bssid.bytes)))
             }
         }

@@ -7,13 +7,14 @@
 
 #if os(Linux)
 import Glibc
-#elseif os(macOS) || os(iOS)
+#elseif canImport(Darwin)
 import Darwin.C
 #endif
 
 import Foundation
 import WLAN
 import CLinuxWLAN
+import SystemPackage
 
 /// Linux Wireless Extensions API
 public final class LinuxWirelessExtensions {
@@ -26,16 +27,12 @@ public final class LinuxWirelessExtensions {
     // MARK: - Initialization
     
     public init() throws {
-        
         let netSocket = socket(AF_INET, SOCK_STREAM, 0)
-        
         guard netSocket >= 0 else { throw POSIXError.fromErrno! }
-        
         self.internalSocket = netSocket
     }
     
     deinit {
-        
         close(internalSocket)
     }
     
@@ -82,15 +79,12 @@ public final class LinuxWirelessExtensions {
         var request = iwreq()
         request.setInterfaceName(interface.name)
         
-        guard IOControl(internalSocket, SIOCGIWNAME, &request) != -1
+        guard ioctl(internalSocket, .init(SIOCGIWNAME), &request) != -1
             else { throw POSIXError.fromErrno! }
         
-        var nameBuffer = UnsafeMutablePointer<Name>.allocate(capacity: 1)
-        
+        let nameBuffer = UnsafeMutablePointer<Name>.allocate(capacity: 1)
         nameBuffer.pointee = request.u.name
-        
-        defer { nameBuffer.deallocate(capacity: 1) }
-        
+        defer { nameBuffer.deallocate() }
         return nameBuffer.withMemoryRebound(to: UInt8.self, capacity: MemoryLayout<Name>.size, { String(cString: $0) })
     }
     
@@ -106,7 +100,7 @@ public final class LinuxWirelessExtensions {
             request.u.data.length = __u16(MemoryLayout<iw_range>.size * 2)
             request.u.data.flags = 0
             
-            guard IOControl(internalSocket, SIOCGIWNAME, &request) != -1
+            guard ioctl(internalSocket, .init(SIOCGIWNAME), &request) != -1
                 else { throw POSIXError.fromErrno! }
         }
         
@@ -125,7 +119,7 @@ public final class LinuxWirelessExtensions {
         
         try startScanning(for: interface)
         
-        let duration: TimeInterval = 5.0
+        let duration: Double = 5.0
         let end = Date() + duration
         
         var isFinished = false
@@ -148,7 +142,7 @@ public final class LinuxWirelessExtensions {
         var request = iwreq()
         request.setInterfaceName(interface.name)
         
-        guard IOControl(internalSocket, SIOCSIWSCAN, &request) != -1
+        guard ioctl(internalSocket, .init(SIOCSIWSCAN), &request) != -1
             else { throw POSIXError.fromErrno! }
     }
     
@@ -164,7 +158,7 @@ public final class LinuxWirelessExtensions {
             request.u.data.length = 0
             request.u.data.flags = 0
             
-            guard IOControl(internalSocket, SIOCSIWSCAN, &request) != -1 else {
+            guard ioctl(internalSocket, .init(SIOCSIWSCAN), &request) != -1 else {
                 
                 let error = POSIXError.fromErrno!
                 
@@ -186,11 +180,11 @@ public final class LinuxWirelessExtensions {
     
     internal func scanResults(for interface: WLANInterface) throws -> [WLANNetwork] {
         
-        var networks = [WLANNetwork]()
+        let networks = [WLANNetwork]()
         
         var bufferLength = Int(IW_SCAN_MAX_DATA)
         var scanDataBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferLength)
-        defer { scanDataBuffer.deallocate(capacity: bufferLength) }
+        defer { scanDataBuffer.deallocate() }
         
         var request = iwreq()
         request.setInterfaceName(interface.name)
@@ -199,7 +193,7 @@ public final class LinuxWirelessExtensions {
         request.u.data.flags = 0
         
         // try getting data
-        while IOControl(internalSocket, SIOCSIWSCAN, &request) != -1 {
+        while ioctl(internalSocket, .init(SIOCSIWSCAN), &request) != -1 {
             
             let error = POSIXError.fromErrno!
             
@@ -209,7 +203,7 @@ public final class LinuxWirelessExtensions {
                 
                 // grow buffer
                 bufferLength += Int(IW_SCAN_MAX_DATA)
-                scanDataBuffer.deallocate(capacity: bufferLength)
+                scanDataBuffer.deallocate()
                 scanDataBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferLength)
                 request.u.data.length = __u16(bufferLength)
                 
@@ -238,9 +232,11 @@ public final class LinuxWirelessExtensions {
 internal extension iwreq {
     
     mutating func setInterfaceName(_ name: String) {
-        
+        typealias CString = (Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8)
         name.withCString {
-            self.ifr_ifrn.ifrn_name = unsafeBitCast($0, to: UnsafeMutablePointer<(Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8)>.self).pointee
+            $0.withMemoryRebound(to: CString.self, capacity: 1) {
+                self.ifr_ifrn.ifrn_name = $0.pointee
+            }
         }
     }
 }
