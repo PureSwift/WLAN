@@ -26,17 +26,18 @@ struct WLANTool {
 
     static func main() async throws {
         
+        let manager: WLANManager
         #if os(macOS)
-        let wlanManager = DarwinWLANManager()
+        manager = DarwinWLANManager()
         #elseif os(Linux)
-        let wlanManager = LinuxWLANManager()
+        manager = try await LinuxWLANManager()
         #endif
                 
-        guard let interface = wlanManager.interface
+        guard let interface = await manager.interface
             else { throw CommandError.noInterface }
     
         print("Interface: \(interface)")
-        let networks = try await wlanManager.scan(for: nil, with: interface)
+        let networks = try await manager.scan(for: nil, with: interface)
     
         print("Networks:")
         networks.forEach { print("\($0.ssid) \($0.bssid?.description ?? "")") }

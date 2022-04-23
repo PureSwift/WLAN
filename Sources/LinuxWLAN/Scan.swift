@@ -12,6 +12,7 @@ import Darwin.C
 #endif
 
 import Foundation
+import SystemPackage
 import WLAN
 import Netlink
 import NetlinkGeneric
@@ -47,7 +48,7 @@ internal extension LinuxWLANManager {
         
         // register for `scan` multicast group
         guard let scanGroup = controller.multicastGroups.first(where: { $0.name == NetlinkGenericMulticastGroupName.NL80211.scan })
-            else { throw POSIXError(.ENOTSUP) }
+            else { throw Errno.notSupported }
         
         // subscribe to group
         try socket.subscribe(to: scanGroup.identifier)
