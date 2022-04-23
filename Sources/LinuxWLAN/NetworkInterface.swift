@@ -9,7 +9,7 @@
 #if os(Linux)
 import Glibc
 #elseif canImport(Darwin)
-import Darwin
+import Darwin.net
 #endif
 
 import Foundation
@@ -53,5 +53,5 @@ internal extension NetworkInterface {
 }
 
 #if !os(Linux)
-var AF_PACKET: CInt { fatalError() }
+var AF_PACKET: CInt { fatalError("AF_PACKET is Linux-only") }
 #endif

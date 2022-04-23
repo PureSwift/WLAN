@@ -36,7 +36,6 @@ struct WLANTool {
             else { throw CommandError.noInterface }
     
         print("Interface: \(interface)")
-        
         let networks = try await wlanManager.scan(for: nil, with: interface)
     
         print("Networks:")

@@ -13,23 +13,37 @@
 #endif
 
 import Foundation
-import Netlink
 import WLAN
+import Netlink
+import NetlinkGeneric
+import Netlink80211
 
 /**
  Linux WLAN Manager
  
  A wrapper around the entire Wi-Fi subsystem that you use to access interfaces.
  */
-public final class LinuxWLANManager: WLANManager {
+public actor LinuxWLANManager: WLANManager {
     
     // MARK: - Properties
     
+    internal let socket: NetlinkSocket
     
+    internal let controller: NetlinkGenericFamilyController
+    
+    internal private(set) var sequenceNumber: UInt32 = 0
     
     // MARK: - Initialization
     
-    public init() { }
+    public init() async throws {
+        // Open socket to kernel.
+        // Create file descriptor and bind socket.
+        let socket = try await NetlinkSocket(.generic)
+        // Find the "nl80211" driver ID.
+        let controller = try await socket.resolve(name: .nl80211)  // Find the "nl80211" driver ID.
+        self.socket = socket
+        self.controller = controller
+    }
     
     // MARK: - Methods
     
@@ -43,25 +57,6 @@ public final class LinuxWLANManager: WLANManager {
      */
     public var interfaces: [WLANInterface] {
         return []
-    }
-    
-    /**
-     Scans for networks.
-     
-     If ssid parameter is present, a directed scan will be performed by the interface, otherwise a broadcast scan will be performed. This method will block for the duration of the scan.
-     
-     - Parameter ssid: The SSID for which to scan.
-     - Parameter interface: The network interface.
-     */
-    public func scan(for ssid: SSID?, with interface: WLANInterface) async throws -> [WLANNetwork] {
-        do {
-            var scanOperation = try await ScanOperation(interface: interface)
-            try await scanOperation.triggerScan(with: ssid)
-            return try await scanOperation.scanResults()
-        }
-        catch let error as NetlinkErrorMessage {
-            throw error.error ?? error
-        }
     }
     
     /**
@@ -82,4 +77,16 @@ public final class LinuxWLANManager: WLANManager {
     public func disassociate(interface: WLANInterface) throws {
         
     }
+    
+    // MARK: - Private Methods
+    
+    internal func newSequence() -> UInt32 {
+        if sequenceNumber == .max {
+            sequenceNumber = 0
+        } else {
+            sequenceNumber += 1
+        }
+        return sequenceNumber
+    }
 }
+
