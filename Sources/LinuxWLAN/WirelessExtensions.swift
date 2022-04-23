@@ -30,9 +30,6 @@ public final class LinuxWirelessExtensions {
         let rawValue = socket(AF_INET, SOCK_STREAM, 0)
         guard rawValue >= 0 else { throw Errno(rawValue: errno) }
         self.fileDescriptor = FileDescriptor(rawValue: rawValue)
-        #if os(Linux)
-        throw POSIXError(.EBADEXEC)
-        #endif
     }
     
     deinit {
@@ -42,7 +39,9 @@ public final class LinuxWirelessExtensions {
     // MARK: - Accessors
     
     /// Returns the default Wi-Fi interface.
-    public var interface: WLANInterface? { return interfaces.first }
+    public var interface: WLANInterface? {
+        return interfaces.first 
+    }
     
     /**
      Returns all available Wi-Fi interfaces.
@@ -50,7 +49,6 @@ public final class LinuxWirelessExtensions {
      - Returns: An array of `WLANInterface`, representing all of the available Wi-Fi interfaces in the system.
      */
     public var interfaces: [WLANInterface] {
-        
         return try! wirelessInterfaces()
     }
     
@@ -134,7 +132,7 @@ public final class LinuxWirelessExtensions {
             while Date() < end && isFinished == false
         
         // only parse scan results if ready
-        guard isFinished else { throw POSIXError(code: .ETIMEDOUT) }
+        guard isFinished else { throw Errno.timedOut }
         
         return try scanResults(for: interface)
     }
@@ -164,11 +162,11 @@ public final class LinuxWirelessExtensions {
                 
                 let error = Errno(rawValue: errno)
                 
-                switch error.code {
-                case .E2BIG: // Data is ready, but not enough space,
+                switch error {
+                case .argListTooLong: // Data is ready, but not enough space,
                     return true
-                case .EAGAIN,
-                     .EBUSY: // Data is not ready
+                case .resourceTemporarilyUnavailable,
+                     .resourceBusy: // Data is not ready
                     return false
                 default:
                     throw error
@@ -199,25 +197,23 @@ public final class LinuxWirelessExtensions {
             
             let error = Errno(rawValue: errno)
             
-            switch error.code {
-                
-            case .E2BIG:
-                
+            switch error {
+            case .argListTooLong:
                 // grow buffer
                 bufferLength += Int(IW_SCAN_MAX_DATA)
                 scanDataBuffer.deallocate()
                 scanDataBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferLength)
                 request.u.data.length = numericCast(bufferLength)
-                
                 continue
-                
             default:
                 throw error
             }
         }
         
-        let scanData = Data(bytes: UnsafeRawPointer(request.u.data.pointer),
-                            count: Int(request.u.data.length))
+        let scanData = Data(
+            bytes: UnsafeRawPointer(request.u.data.pointer),
+            count: Int(request.u.data.length)
+        )
         
         //let version = try wirelessExtensionVersion(for: interface)
         
