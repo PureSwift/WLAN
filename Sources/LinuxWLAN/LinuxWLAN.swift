@@ -13,8 +13,8 @@
 #endif
 
 import Foundation
+import Netlink
 import WLAN
-import CLinuxWLAN
 
 /**
  Linux WLAN Manager
@@ -25,19 +25,18 @@ public final class LinuxWLANManager: WLANManager {
     
     // MARK: - Properties
     
-    /// Socket handle to kernel network interfaces subsystem.
-    internal let wirelessExtensions: LinuxWirelessExtensions
+    
     
     // MARK: - Initialization
     
     public init() throws {
-        self.wirelessExtensions = try LinuxWirelessExtensions()
+        
     }
     
     // MARK: - Methods
     
     /// Returns the default Wi-Fi interface.
-    public var interface: WLANInterface? { return wirelessExtensions.interface }
+    public var interface: WLANInterface? { return nil }
     
     /**
      Returns all available Wi-Fi interfaces.
@@ -45,7 +44,26 @@ public final class LinuxWLANManager: WLANManager {
      - Returns: An array of `WLANInterface`, representing all of the available Wi-Fi interfaces in the system.
      */
     public var interfaces: [WLANInterface] {
-        return wirelessExtensions.interfaces
+        return []
+    }
+    
+    /**
+     Scans for networks.
+     
+     If ssid parameter is present, a directed scan will be performed by the interface, otherwise a broadcast scan will be performed. This method will block for the duration of the scan.
+     
+     - Parameter ssid: The SSID for which to scan.
+     - Parameter interface: The network interface.
+     */
+    public func scan(for ssid: SSID?, with interface: WLANInterface) async throws -> [WLANNetwork] {
+        do {
+            var scanOperation = try await ScanOperation(interface: interface)
+            try await scanOperation.triggerScan(with: ssid)
+            return try await scanOperation.scanResults()
+        }
+        catch let error as NetlinkErrorMessage {
+            throw error.error ?? error
+        }
     }
     
     /**

@@ -16,29 +16,6 @@ import WLAN
 import Netlink
 import NetlinkGeneric
 import Netlink80211
-import CLinuxWLAN
-
-public extension LinuxWLANManager {
-    
-    /**
-     Scans for networks.
-     
-     If ssid parameter is present, a directed scan will be performed by the interface, otherwise a broadcast scan will be performed. This method will block for the duration of the scan.
-     
-     - Parameter ssid: The SSID for which to scan.
-     - Parameter interface: The network interface.
-     */
-    func scan(for ssid: SSID?, with interface: WLANInterface) async throws -> [WLANNetwork] {
-        do {
-            var scanOperation = try await ScanOperation(interface: interface)
-            try await scanOperation.triggerScan(with: ssid)
-            return try await scanOperation.scanResults()
-        }
-        catch let error as NetlinkErrorMessage {
-            throw error.error ?? error
-        }
-    }
-}
 
 internal extension LinuxWLANManager {
     

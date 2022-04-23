@@ -1,4 +1,0 @@
-module CLinuxWLAN [system] {
-    header "wlan.h"
-    export *
-}

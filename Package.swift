@@ -50,9 +50,6 @@ let package = Package(
                 .target(
                     name: "WLAN"
                 ),
-                .target(
-                    name: "CLinuxWLAN"
-                ),
                 .product(
                     name: "Netlink",
                     package: "Netlink"
@@ -66,9 +63,6 @@ let package = Package(
                     package: "Netlink"
                 )
             ]
-        ),
-        .target(
-            name: "CLinuxWLAN"
         ),
         .executableTarget(
             name: "wirelesstool",

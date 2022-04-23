@@ -7,19 +7,24 @@
 //
 
 #if os(Linux)
-    import Glibc
-#elseif os(macOS) || os(iOS)
-    import Darwin
+import Glibc
+#elseif canImport(Darwin)
+import Darwin
 #endif
 
 import Foundation
 import SystemPackage
-import CLinuxWLAN
 
 /// UNIX Network Interface
-public struct NetworkInterface {
+internal struct NetworkInterface {
     
-    public static func interfaces() throws -> [NetworkInterface] {
+    /// Interface name.
+    public let name: String
+}
+
+internal extension NetworkInterface {
+    
+    static func interfaces() throws -> [NetworkInterface] {
         
         var addressLinkedList: UnsafeMutablePointer<ifaddrs>? = nil
         
@@ -27,18 +32,12 @@ public struct NetworkInterface {
             else { throw Errno(rawValue: errno) }
         
         var interfaces = [NetworkInterface]()
-        
         var nextElement = addressLinkedList
-        
         while let interface = nextElement?.pointee {
-            
             nextElement = interface.ifa_next
-            
             guard interface.ifa_addr?.pointee.sa_family == sa_family_t(AF_PACKET)
                 else { continue }
-            
             let name = String(cString: interface.ifa_name)
-            
             interfaces.append(NetworkInterface(name: name))
         }
         
@@ -46,15 +45,13 @@ public struct NetworkInterface {
     }
     
     /// Returns the index of the network interface corresponding to the name
-    public static func index(for interface: NetworkInterface) throws -> UInt {
-        
+    static func index(for interface: NetworkInterface) throws -> UInt {
         let index = if_nametoindex(interface.name)
-        
         guard index != 0 else { throw Errno(rawValue: errno) }
-        
         return UInt(index)
     }
-    
-    /// Interface name.
-    public let name: String
 }
+
+#if !os(Linux)
+var AF_PACKET: CInt { fatalError() }
+#endif
