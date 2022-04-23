@@ -13,6 +13,7 @@
 #endif
 
 import Foundation
+import SystemPackage
 import CLinuxWLAN
 
 /// UNIX Network Interface
@@ -23,7 +24,7 @@ public struct NetworkInterface {
         var addressLinkedList: UnsafeMutablePointer<ifaddrs>? = nil
         
         guard getifaddrs(&addressLinkedList) == 0
-            else { throw POSIXError.fromErrno! }
+            else { throw Errno(rawValue: errno) }
         
         var interfaces = [NetworkInterface]()
         
@@ -49,7 +50,7 @@ public struct NetworkInterface {
         
         let index = if_nametoindex(interface.name)
         
-        guard index != 0 else { throw POSIXError.fromErrno! }
+        guard index != 0 else { throw Errno(rawValue: errno) }
         
         return UInt(index)
     }

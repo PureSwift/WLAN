@@ -22,18 +22,21 @@ public final class LinuxWirelessExtensions {
     // MARK: - Properties
     
     /// Socket handle to kernel network interfaces subsystem.
-    internal let internalSocket: CInt
+    internal let fileDescriptor: FileDescriptor
     
     // MARK: - Initialization
     
     public init() throws {
-        let netSocket = socket(AF_INET, SOCK_STREAM, 0)
-        guard netSocket >= 0 else { throw POSIXError.fromErrno! }
-        self.internalSocket = netSocket
+        let rawValue = socket(AF_INET, SOCK_STREAM, 0)
+        guard rawValue >= 0 else { throw Errno(rawValue: errno) }
+        self.fileDescriptor = FileDescriptor(rawValue: rawValue)
+        #if os(Linux)
+        throw POSIXError(.EBADEXEC)
+        #endif
     }
     
     deinit {
-        close(internalSocket)
+        try? fileDescriptor.close()
     }
     
     // MARK: - Accessors
@@ -54,42 +57,38 @@ public final class LinuxWirelessExtensions {
     // MARK: - Methods
     
     internal func wirelessInterfaces() throws -> [WLANInterface] {
-        
         let networkInterfaces = try NetworkInterface.interfaces()
-        
         var wlanInterfaces = [WLANInterface]()
-        
         for interface in networkInterfaces {
-            
             let wlanInterface = WLANInterface(name: interface.name)
-            
             do { let _ = try name(for: wlanInterface) }
             catch { continue }
-            
             wlanInterfaces.append(wlanInterface)
         }
-        
         return wlanInterfaces
     }
     
     public func name(for interface: WLANInterface) throws -> String {
-        
+        #if os(Linux)
         typealias Name = (Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8, Int8)
         
         var request = iwreq()
         request.setInterfaceName(interface.name)
         
-        guard ioctl(internalSocket, .init(SIOCGIWNAME), &request) != -1
-            else { throw POSIXError.fromErrno! }
+        guard ioctl(fileDescriptor.rawValue, .init(SIOCGIWNAME), &request) != -1
+            else { throw Errno(rawValue: errno) }
         
         let nameBuffer = UnsafeMutablePointer<Name>.allocate(capacity: 1)
         nameBuffer.pointee = request.u.name
         defer { nameBuffer.deallocate() }
         return nameBuffer.withMemoryRebound(to: UInt8.self, capacity: MemoryLayout<Name>.size, { String(cString: $0) })
+        #else
+        fatalError("Linux only")
+        #endif
     }
     
     public func version(for interface: WLANInterface) throws -> UInt8 {
-        
+        #if os(Linux)
         var result = [iw_range](repeating: iw_range(), count: 2)
         try result.withUnsafeMutableBytes {
             
@@ -97,16 +96,19 @@ public final class LinuxWirelessExtensions {
             request.setInterfaceName(interface.name)
             
             request.u.data.pointer = UnsafeMutableRawPointer($0.baseAddress!)
-            request.u.data.length = __u16(MemoryLayout<iw_range>.size * 2)
+            request.u.data.length = numericCast(MemoryLayout<iw_range>.size * 2)
             request.u.data.flags = 0
             
-            guard ioctl(internalSocket, .init(SIOCGIWNAME), &request) != -1
-                else { throw POSIXError.fromErrno! }
+            guard ioctl(fileDescriptor.rawValue, .init(SIOCGIWNAME), &request) != -1
+                else { throw Errno(rawValue: errno) }
         }
-        
         return result[0].we_version_compiled
+        #else
+        fatalError("Linux only")
+        #endif
     }
     
+    #if os(Linux)
     /**
      Scans for networks.
      
@@ -142,8 +144,8 @@ public final class LinuxWirelessExtensions {
         var request = iwreq()
         request.setInterfaceName(interface.name)
         
-        guard ioctl(internalSocket, .init(SIOCSIWSCAN), &request) != -1
-            else { throw POSIXError.fromErrno! }
+        guard ioctl(fileDescriptor.rawValue, .init(SIOCSIWSCAN), &request) != -1
+            else { throw Errno(rawValue: errno) }
     }
     
     internal func isScanFinished(for interface: WLANInterface) throws -> Bool {
@@ -158,9 +160,9 @@ public final class LinuxWirelessExtensions {
             request.u.data.length = 0
             request.u.data.flags = 0
             
-            guard ioctl(internalSocket, .init(SIOCSIWSCAN), &request) != -1 else {
+            guard ioctl(fileDescriptor.rawValue, .init(SIOCSIWSCAN), &request) != -1 else {
                 
-                let error = POSIXError.fromErrno!
+                let error = Errno(rawValue: errno)
                 
                 switch error.code {
                 case .E2BIG: // Data is ready, but not enough space,
@@ -189,13 +191,13 @@ public final class LinuxWirelessExtensions {
         var request = iwreq()
         request.setInterfaceName(interface.name)
         request.u.data.pointer = UnsafeMutableRawPointer(scanDataBuffer)
-        request.u.data.length = __u16(bufferLength)
+        request.u.data.length = numericCast(bufferLength)
         request.u.data.flags = 0
         
         // try getting data
-        while ioctl(internalSocket, .init(SIOCSIWSCAN), &request) != -1 {
+        while ioctl(fileDescriptor.rawValue, .init(SIOCSIWSCAN), &request) != -1 {
             
-            let error = POSIXError.fromErrno!
+            let error = Errno(rawValue: errno)
             
             switch error.code {
                 
@@ -205,7 +207,7 @@ public final class LinuxWirelessExtensions {
                 bufferLength += Int(IW_SCAN_MAX_DATA)
                 scanDataBuffer.deallocate()
                 scanDataBuffer = UnsafeMutablePointer<UInt8>.allocate(capacity: bufferLength)
-                request.u.data.length = __u16(bufferLength)
+                request.u.data.length = numericCast(bufferLength)
                 
                 continue
                 
@@ -225,6 +227,7 @@ public final class LinuxWirelessExtensions {
         
         return networks
     }
+    #endif
 }
 
 // MARK: - Linux Support
@@ -244,9 +247,7 @@ internal extension iwreq {
 #if os(Linux)
 
 internal let SOCK_RAW = CInt(Glibc.SOCK_RAW.rawValue)
-
 internal let SOCK_STREAM = CInt(Glibc.SOCK_STREAM.rawValue)
-
 internal typealias sa_family_t = Glibc.sa_family_t
 
 #elseif os(macOS)
