@@ -13,7 +13,7 @@ import Foundation
  
  A wrapper around the entire Wi-Fi subsystem that you use to access interfaces.
  */
-public protocol WLANManager {
+public protocol WLANManager: AnyObject {
     
     /// Returns the default Wi-Fi interface.
     var interface: WLANInterface? { get async }

@@ -142,14 +142,19 @@ public actor LinuxWLANManager: WLANManager {
     }
     
     internal func refreshInterfaces() async throws {
-        let interfaces = try await getInterfaces()
-        var cache = [WLANInterface: NL80211Interface]()
-        cache.reserveCapacity(interfaces.count)
+        let interfaces = try NetworkInterface.interfaces()
+        self.interfaceCache.removeAll(keepingCapacity: true)
+        self.interfaceCache.reserveCapacity(interfaces.count)
         for interface in interfaces {
-            let key = WLANInterface(name: interface.name)
-            cache[key] = interface
+            do {
+                let id = try NetworkInterface.index(for: interface)
+                let interface = try await getInterface(id)
+                let key = WLANInterface(name: interface.name)
+                self.interfaceCache[key] = interface
+            } catch {
+                continue
+            }
         }
-        self.interfaceCache = cache
     }
 }
 
@@ -161,6 +166,8 @@ internal protocol NetlinkWLANMessage: Encodable {
     
     static var version: NetlinkGenericVersion { get }
 }
+
+extension NL80211GetInterfaceCommand: NetlinkWLANMessage { }
 
 extension NL80211TriggerScanCommand: NetlinkWLANMessage { }
 
