@@ -16,14 +16,14 @@ import Foundation
 public protocol WLANManager {
     
     /// Returns the default Wi-Fi interface.
-    var interface: WLANInterface? { get }
+    var interface: WLANInterface? { get async }
     
     /**
      Returns all available Wi-Fi interfaces.
      
      - Returns: An array of `WLANInterface`, representing all of the available Wi-Fi interfaces in the system.
      */
-    var interfaces: [WLANInterface] { get }
+    var interfaces: [WLANInterface] { get async }
     
     /**
      Scans for networks.
