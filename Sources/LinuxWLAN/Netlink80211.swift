@@ -116,23 +116,8 @@ internal extension LinuxWLANManager {
             
             var messages = [NetlinkGenericMessage]()
             repeat {
-                
                 // attempt to read messages
-                do { messages += try await socket.recieve(NetlinkGenericMessage.self) }
-                catch {
-                    
-                    #if os(Linux)
-                    typealias POSIXError = Netlink.POSIXError
-                    #endif
-                    
-                    // try again
-                    if let error = error as? POSIXError, error.code == .EBUSY {
-                        sleep(1)
-                    } else {
-                        throw error
-                    }
-                }
-                
+                messages += try await socket.recieve(NetlinkGenericMessage.self)            
             } while (messages.contains(where: { $0.command == NetlinkGenericCommand.NL80211.newScanResults }) == false)
         }
         

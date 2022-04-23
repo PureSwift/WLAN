@@ -21,8 +21,12 @@ import DarwinWLAN
 import LinuxWLAN
 #endif
 
-func run(arguments: [String] = CommandLine.arguments) throws {
-    
+@main
+struct WLANTool {
+
+    static func main() async throws {
+        
+    let arguments: [String] = CommandLine.arguments
     //  first argument is always the current directory
     //let arguments = Array(arguments.dropFirst())
     
@@ -45,15 +49,9 @@ func run(arguments: [String] = CommandLine.arguments) throws {
     print("Wireless Extension Name: \(name)")
     #endif
     
-    let networks = try wlanManager.scan(for: nil, with: interface)
+    let networks = try await wlanManager.scan(for: nil, with: interface)
     
     print("Networks:")
     networks.forEach { print("\($0.ssid) (\($0.bssid?.description ?? "N/A"))") }
-}
-
-do { try run() }
-    
-catch {
-    print("Error:", error)
-    exit(1)
+    }
 }
