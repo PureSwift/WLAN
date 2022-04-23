@@ -13,7 +13,9 @@ import CoreWLAN
 import WLAN
 
 /// Darwin WLAN Manager
-public final class DarwinWLANManager: NSObject, WLANManager {
+///
+/// Query AirPort interfaces and choose wireless networks.
+public final class DarwinWLANManager: WLANManager {
     
     // MARK: - Properties
     
@@ -21,10 +23,8 @@ public final class DarwinWLANManager: NSObject, WLANManager {
     
     // MARK: - Initialization
     
-    public override init() {
-        
+    public init() {
         self.client = CWWiFiClient()
-        super.init()
         self.client.delegate = self
     }
     
@@ -63,14 +63,23 @@ public final class DarwinWLANManager: NSObject, WLANManager {
      
      If ssid parameter is present, a directed scan will be performed by the interface, otherwise a broadcast scan will be performed. This method will block for the duration of the scan.
      
+     - Note: Returned networks will not contain BSSID information unless Location Services is enabled and the user has authorized the calling app to use location services.
+     
      - Parameter ssid: The SSID for which to scan.
      - Parameter interface: The network interface.
      */
-    public func scan(for ssid: SSID? = nil, with interface: WLANInterface) throws -> [WLANNetwork] {
+    public func scan(
+        for ssid: SSID? = nil,
+        with interface: WLANInterface
+    ) async throws -> [WLANNetwork] {
         
         let wlanInterface = try client.interface(for: interface)
         try wlanInterface.scanForNetworks(withSSID: ssid?.data)
-        return wlanInterface.cachedScanResults()?.map { WLANNetwork($0) } ?? []
+        let cachedScanResults = wlanInterface.cachedScanResults() ?? []
+        return cachedScanResults
+            .lazy
+            .map { WLANNetwork($0) }
+            .sorted(by: { $0.ssid.description < $1.ssid.description })
     }
     
     /**
@@ -97,6 +106,79 @@ public final class DarwinWLANManager: NSObject, WLANManager {
      */
     public func disassociate(interface: WLANInterface) throws {
         try client.interface(for: interface).disassociate()
+    }
+}
+
+internal extension DarwinWLANManager {
+    
+    /// CWWiFiClient Delegate
+    ///
+    /// https://developer.apple.com/documentation/corewlan/cweventdelegate
+    @objc(DarwinWLANManagerDelegate)
+    final class Delegate: NSObject /* CWWiFiEventDelegate */ {
+        
+        private unowned var manager: DarwinWLANManager
+        
+        init(_ manager: DarwinWLANManager) {
+            self.manager = manager
+        }
+        
+        /// Tells the delegate that the current BSSID has changed.
+        @objc
+        func bssidDidChangeForWiFiInterface(withName name: String) {
+            
+        }
+        
+        /// Tells the delegate that the connection to the Wi-Fi subsystem is temporarily interrupted.
+        @objc
+        func clientConnectionInterrupted() {
+            
+        }
+        
+        /// Tells the delegate that the connection to the Wi-Fi subsystem is permanently invalidated.
+        @objc
+        func clientConnectionInvalidated() {
+            
+        }
+        
+        /// Tells the delegate that the currently adopted country code has changed.
+        @objc
+        func countryCodeDidChangeForWiFiInterface(withName name: String) {
+            
+        }
+        
+        /// Tells the delegate that the Wi-Fi link state changed.
+        @objc
+        func linkDidChangeForWiFiInterface(withName name: String) {
+            
+        }
+        
+        /// Tells the delegate that the link quality has changed.
+        @objc
+        func linkQualityDidChangeForWiFiInterface(withName name: String, rssi: Int, transmitRate: Double) {
+            
+        }
+        
+        /// Tells the delegate that the operating mode has changed.
+        func modeDidChangeForWiFiInterface(withName name: String) {
+            
+        }
+        
+        /// Tells the delegate that the Wi-Fi power state changed.
+        func powerStateDidChangeForWiFiInterface(withName name: String) {
+            
+        }
+        
+        /// Tells the delegate that the Wi-Fi interface's scan cache has been updated with new results.
+        func scanCacheUpdatedForWiFiInterface(withName name: String) {
+            
+        }
+        
+        ///
+        func ssidDidChangeForWiFiInterface(withName name: String) {
+            
+        }
+
     }
 }
 

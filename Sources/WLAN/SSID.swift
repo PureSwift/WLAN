@@ -66,23 +66,10 @@ extension SSID: ExpressibleByStringLiteral {
     public init(stringLiteral string: String) {
         
         if string.isEmpty {
-            
             self.data = Data(" ".utf8)
-            
         } else {
-            
             // truncate if neccesary
             self.data = Data(string.utf8.prefix(SSID.length.max))
         }
-    }
-    
-    public init(unicodeScalarLiteral value: String) {
-        
-        self.init(stringLiteral: value)
-    }
-    
-    public init(extendedGraphemeClusterLiteral value: String) {
-        
-        self.init(stringLiteral: value)
     }
 }

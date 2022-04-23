@@ -26,32 +26,28 @@ struct WLANTool {
 
     static func main() async throws {
         
-    let arguments: [String] = CommandLine.arguments
-    //  first argument is always the current directory
-    //let arguments = Array(arguments.dropFirst())
+        #if os(macOS)
+        let wlanManager = DarwinWLANManager()
+        #elseif os(Linux)
+        let wlanManager = try LinuxWLANManager()
+        #endif
+        
+        guard let interface = wlanManager.interface
+            else { throw CommandError.noInterface }
     
-    #if os(macOS)
-    let wlanManager = DarwinWLANManager()
-    #elseif os(Linux)
-    let wlanManager = try LinuxWLANManager()
-    #endif
+        print("Interface: \(interface)")
     
-    guard let interface = wlanManager.interface
-        else { throw CommandError.noInterface }
+        #if os(Linux)
+        let wirelessExtensions = try LinuxWirelessExtensions()
+        let version = try wirelessExtensions.version(for: interface)
+        print("Wireless Extension Version: \(version)")
+        let name = try wirelessExtensions.name(for: interface)
+        print("Wireless Extension Name: \(name)")
+        #endif
     
-    print("Interface: \(interface)")
+        let networks = try await wlanManager.scan(for: nil, with: interface)
     
-    #if os(Linux)
-    let wirelessExtensions = try LinuxWirelessExtensions()
-    let version = try wirelessExtensions.version(for: interface)
-    print("Wireless Extension Version: \(version)")
-    let name = try wirelessExtensions.name(for: interface)
-    print("Wireless Extension Name: \(name)")
-    #endif
-    
-    let networks = try await wlanManager.scan(for: nil, with: interface)
-    
-    print("Networks:")
-    networks.forEach { print("\($0.ssid) (\($0.bssid?.description ?? "N/A"))") }
+        print("Networks:")
+        networks.forEach { print("\($0.ssid) \($0.bssid?.description ?? "")") }
     }
 }
