@@ -29,9 +29,7 @@ public final class LinuxWLANManager: WLANManager {
     
     // MARK: - Initialization
     
-    public init() throws {
-        
-    }
+    public init() { }
     
     // MARK: - Methods
     

@@ -29,9 +29,9 @@ struct WLANTool {
         #if os(macOS)
         let wlanManager = DarwinWLANManager()
         #elseif os(Linux)
-        let wlanManager = try LinuxWLANManager()
+        let wlanManager = LinuxWLANManager()
         #endif
-        
+                
         guard let interface = wlanManager.interface
             else { throw CommandError.noInterface }
     
