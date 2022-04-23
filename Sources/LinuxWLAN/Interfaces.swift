@@ -18,15 +18,7 @@ internal extension LinuxWLANManager {
     func getInterfaces() async throws -> [NL80211Interface] {
         
         // Setup which command to run.
-        let message = NetlinkGenericMessage(
-            type: NetlinkMessageType(rawValue: UInt16(controller.identifier.rawValue)),
-            flags: 0,
-            sequence: newSequence(),
-            process: ProcessID.current.rawValue,
-            command: NetlinkGenericCommand.NL80211.getInterface,
-            version: 0,
-            payload: Data()
-        )
+        let message = newMessage(NetlinkGenericCommand.NL80211.getInterface, flags: [.dump])
         
         // Send the message.
         try await socket.send(message.data)

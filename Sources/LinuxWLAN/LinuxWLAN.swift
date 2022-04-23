@@ -13,6 +13,7 @@
 #endif
 
 import Foundation
+import SystemPackage
 import WLAN
 import Netlink
 import NetlinkGeneric
@@ -77,17 +78,6 @@ public actor LinuxWLANManager: WLANManager {
         }
     }
     
-    internal func refreshInterfaces() async throws {
-        let interfaces = try await getInterfaces()
-        var cache = [WLANInterface: NL80211Interface]()
-        cache.reserveCapacity(interfaces.count)
-        for interface in interfaces {
-            let key = WLANInterface(name: interface.name)
-            cache[key] = interface
-        }
-        self.interfaceCache = cache
-    }
-    
     /**
      Sets the interface power state.
      
@@ -107,9 +97,42 @@ public actor LinuxWLANManager: WLANManager {
         
     }
     
-    // MARK: - Private Methods
+    // MARK: - Internal Methods
     
-    internal func newSequence() -> UInt32 {
+    internal subscript(interfaceName: WLANInterface) -> NL80211Interface {
+        guard let interface = interfaceCache[interfaceName] else {
+            fatalError("Unknown network \(interfaceName.name)")
+        }
+        return interface
+    }
+    
+    internal func newMessage(
+        _ command: NetlinkGenericCommand,
+        flags: NetlinkMessageFlag = 0,
+        version: NetlinkGenericVersion = 0,
+        payload: Data = Data()
+    ) -> NetlinkGenericMessage {
+        return NetlinkGenericMessage(
+            type: NetlinkMessageType(rawValue: UInt16(controller.identifier.rawValue)),
+            flags: flags,
+            sequence: newSequence(),
+            process: ProcessID.current.rawValue,
+            command: command,
+            version: version,
+            payload: payload
+        )
+    }
+    
+    internal func newMessage<T: NetlinkWLANMessage>(
+        _ command: T,
+        flags: NetlinkMessageFlag = 0
+    ) throws -> NetlinkGenericMessage {
+        let encoder = NetlinkAttributeEncoder()
+        let commandData = try encoder.encode(command)
+        return newMessage(T.command, flags: flags, version: T.version, payload: commandData)
+    }
+    
+    private func newSequence() -> UInt32 {
         if sequenceNumber == .max {
             sequenceNumber = 0
         } else {
@@ -117,5 +140,28 @@ public actor LinuxWLANManager: WLANManager {
         }
         return sequenceNumber
     }
+    
+    internal func refreshInterfaces() async throws {
+        let interfaces = try await getInterfaces()
+        var cache = [WLANInterface: NL80211Interface]()
+        cache.reserveCapacity(interfaces.count)
+        for interface in interfaces {
+            let key = WLANInterface(name: interface.name)
+            cache[key] = interface
+        }
+        self.interfaceCache = cache
+    }
 }
 
+// MARK: - Supporting Types
+
+internal protocol NetlinkWLANMessage: Encodable {
+    
+    static var command: NetlinkGenericCommand { get }
+    
+    static var version: NetlinkGenericVersion { get }
+}
+
+extension NL80211TriggerScanCommand: NetlinkWLANMessage { }
+
+extension NL80211GetScanResultsCommand: NetlinkWLANMessage { }

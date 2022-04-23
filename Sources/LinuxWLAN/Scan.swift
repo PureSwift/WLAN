@@ -31,8 +31,8 @@ public extension LinuxWLANManager {
     func scan(for ssid: SSID? = nil, with interface: WLANInterface) async throws -> [WLANNetwork] {
         do {
             // start scanning on wireless interface.
-            let interfaceIndex = try NetworkInterface.index(for: NetworkInterface(name: interface.name))
-            try await triggerScan(with: ssid, interface: interfaceIndex)
+            let interface = self[interface]
+            try await triggerScan(with: ssid, interface: interface.id)
             
             // wait
             var messages = [NetlinkGenericMessage]()
@@ -42,7 +42,7 @@ public extension LinuxWLANManager {
             } while (messages.contains(where: { $0.command == NetlinkGenericCommand.NL80211.newScanResults }) == false)
             
             // collect results
-            let scanResults = try await scanResults(interface: interfaceIndex)
+            let scanResults = try await scanResults(interface: interface.id)
             return scanResults.map {
                 let ssidLength = min(Int($0.bss.informationElements[1]), 32)
                 let ssid = SSID(data: $0.bss.informationElements[2 ..< 2 + ssidLength]) ?? ""
@@ -58,7 +58,7 @@ public extension LinuxWLANManager {
 internal extension LinuxWLANManager {
     
     /// Issue NL80211_CMD_TRIGGER_SCAN to the kernel and wait for it to finish.
-    func triggerScan(with ssid: SSID? = nil, interface interfaceIndex: UInt) async throws {
+    func triggerScan(with ssid: SSID? = nil, interface: UInt32) async throws {
         
         // register for `scan` multicast group
         guard let scanGroup = controller.multicastGroups.first(where: { $0.name == NetlinkGenericMulticastGroupName.NL80211.scan })
@@ -68,39 +68,24 @@ internal extension LinuxWLANManager {
         try socket.subscribe(to: scanGroup.identifier)
         defer { try? socket.unsubscribe(from: scanGroup.identifier) }
         
-        let command = NL80211TriggerScanCommand(interface: UInt32(interfaceIndex))
-        let encoder = NetlinkAttributeEncoder()
-        let commandData = try encoder.encode(command)
+        // build command
+        let command = NL80211TriggerScanCommand(interface: interface)
         
         // Setup which command to run.
-        let message = NetlinkGenericMessage(type: NetlinkMessageType(rawValue: UInt16(controller.identifier.rawValue)),
-                                            flags: [.request],
-                                            sequence: newSequence(),
-                                            process: getpid(),
-                                            command: NetlinkGenericCommand.NL80211.triggerScan,
-                                            version: 0,
-                                            payload: commandData)
+        let message = try newMessage(command, flags: [.request])
         
         // Send the message.
         try await socket.send(message.data)
     }
     
     /// Issue NL80211_CMD_GET_SCAN.
-    func scanResults(interface interfaceIndex: UInt) async throws -> [NL80211ScanResult] {
+    func scanResults(interface: UInt32) async throws -> [NL80211ScanResult] {
         
         // Add message attribute, specify which interface to use.
-        let command = NL80211GetScanResultsCommand(interface: UInt32(interfaceIndex))
-        let encoder = NetlinkAttributeEncoder()
-        let commandData = try encoder.encode(command)
+        let command = NL80211GetScanResultsCommand(interface: interface)
         
         // Setup which command to run.
-        let message = NetlinkGenericMessage(type: NetlinkMessageType(rawValue: UInt16(controller.identifier.rawValue)),
-                                            flags: 773,
-                                            sequence: newSequence(),
-                                            process: getpid(),
-                                            command: NetlinkGenericCommand.NL80211.getScan,
-                                            version: 0,
-                                            payload: commandData)
+        let message = try newMessage(command, flags: 773)
         
         // Send the message.
         try await socket.send(message.data)
