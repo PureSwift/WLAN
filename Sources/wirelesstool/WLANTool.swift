@@ -36,15 +36,7 @@ struct WLANTool {
             else { throw CommandError.noInterface }
     
         print("Interface: \(interface)")
-    
-        #if os(Linux)
-        let wirelessExtensions = try LinuxWirelessExtensions()
-        let version = try wirelessExtensions.version(for: interface)
-        print("Wireless Extension Version: \(version)")
-        let name = try wirelessExtensions.name(for: interface)
-        print("Wireless Extension Name: \(name)")
-        #endif
-    
+        
         let networks = try await wlanManager.scan(for: nil, with: interface)
     
         print("Networks:")
