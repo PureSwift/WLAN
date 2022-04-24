@@ -14,11 +14,11 @@ import Netlink80211
 
 internal extension LinuxWLANManager {
     
-    /// Issue NL80211_CMD_GET_INTERFACE to the kernel and get wireless interfaces info.
-    func getInterface(_ interface: UInt32) async throws -> NL80211Interface {
+    /// Issue NL80211_CMD_GET_WIPHY to the kernel and get wireless info.
+    func getWiphy(_ interface: UInt32) async throws -> NL80211Wiphy {
         // Setup which command to run.
-        let command = NL80211GetInterfaceCommand(id: interface)
-        let message = try newMessage(command, flags: [.request])
+        let command = NL80211GetWiphyCommand(interface: interface)
+        let message = try newMessage(command, flags: [])
         // Send the message.
         try await socket.send(message.data)
         // Retrieve the kernel's answer
@@ -26,7 +26,7 @@ internal extension LinuxWLANManager {
         let decoder = NetlinkAttributeDecoder()
         // parse response
         guard let response = messages.first,
-            let interface = try? decoder.decode(NL80211Interface.self, from: response)
+            let interface = try? decoder.decode(NL80211Wiphy.self, from: response)
             else { throw NetlinkSocketError.invalidData(Data()) }
         return interface
     }
