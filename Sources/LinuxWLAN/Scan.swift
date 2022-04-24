@@ -25,34 +25,38 @@ public extension LinuxWLANManager {
      
      If ssid parameter is present, a directed scan will be performed by the interface, otherwise a broadcast scan will be performed. This method will block for the duration of the scan.
      
-     - Parameter ssid: The SSID for which to scan.
      - Parameter interface: The network interface.
      */
     func scan(with interface: WLANInterface) async throws -> [WLANNetwork] {
         do {
+            // get cached interface index
+            let interface = try self.interface(for: interface)
+            
             // register for `scan` multicast group
             guard let scanGroup = controller.multicastGroups.first(where: { $0.name == NetlinkGenericMulticastGroupName.NL80211.scan })
                 else { throw Errno.notSupported }
         
             // subscribe to group
             try socket.subscribe(to: scanGroup.identifier)
-            defer { try? socket.unsubscribe(from: scanGroup.identifier) }
-
-            // start scanning on wireless interface.
-            let interface = try self.interface(for: interface)
-            try await triggerScan(interface: interface.id)
-            
-            // wait
-            var messages = [NetlinkGenericMessage]()
-            repeat {
-                do {
-                    // attempt to read messages
-                    messages += try await socket.recieve(NetlinkGenericMessage.self)
-                }
-                catch _ as NetlinkErrorMessage {
-                    continue
-                }
-            } while (messages.contains(where: { $0.command == NetlinkGenericCommand.NL80211.newScanResults }) == false)
+            do {
+                // stop listening to scan results
+                defer { try? socket.unsubscribe(from: scanGroup.identifier) }
+                
+                // start scanning on wireless interface.
+                try await triggerScan(interface: interface.id)
+                
+                // wait
+                var messages = [NetlinkGenericMessage]()
+                repeat {
+                    do {
+                        // attempt to read messages
+                        messages += try await socket.recieve(NetlinkGenericMessage.self)
+                    }
+                    catch _ as NetlinkErrorMessage {
+                        continue
+                    }
+                } while (messages.contains(where: { $0.command == NetlinkGenericCommand.NL80211.newScanResults }) == false)
+            }
             
             // collect results
             let scanResults = try await scanResults(interface: interface.id)
