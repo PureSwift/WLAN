@@ -30,6 +30,14 @@ public extension LinuxWLANManager {
      */
     func scan(with interface: WLANInterface) async throws -> [WLANNetwork] {
         do {
+            // register for `scan` multicast group
+            guard let scanGroup = controller.multicastGroups.first(where: { $0.name == NetlinkGenericMulticastGroupName.NL80211.scan })
+                else { throw Errno.notSupported }
+        
+            // subscribe to group
+            try socket.subscribe(to: scanGroup.identifier)
+            defer { try? socket.unsubscribe(from: scanGroup.identifier) }
+
             // start scanning on wireless interface.
             let interface = try self.interface(for: interface)
             try await triggerScan(interface: interface.id)
@@ -37,8 +45,13 @@ public extension LinuxWLANManager {
             // wait
             var messages = [NetlinkGenericMessage]()
             repeat {
-                // attempt to read messages
-                messages += try await socket.recieve(NetlinkGenericMessage.self)
+                do {
+                    // attempt to read messages
+                    messages += try await socket.recieve(NetlinkGenericMessage.self)
+                }
+                catch _ as NetlinkErrorMessage {
+                    continue
+                }
             } while (messages.contains(where: { $0.command == NetlinkGenericCommand.NL80211.newScanResults }) == false)
             
             // collect results
@@ -55,14 +68,6 @@ internal extension LinuxWLANManager {
     
     /// Issue NL80211_CMD_TRIGGER_SCAN to the kernel and wait for it to finish.
     func triggerScan(interface: UInt32) async throws {
-        
-        // register for `scan` multicast group
-        guard let scanGroup = controller.multicastGroups.first(where: { $0.name == NetlinkGenericMulticastGroupName.NL80211.scan })
-            else { throw Errno.notSupported }
-        
-        // subscribe to group
-        try socket.subscribe(to: scanGroup.identifier)
-        defer { try? socket.unsubscribe(from: scanGroup.identifier) }
         
         // build command
         let command = NL80211TriggerScanCommand(interface: interface)
