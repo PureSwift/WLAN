@@ -18,7 +18,7 @@ internal extension LinuxWLANManager {
     func getWiphy(_ interface: UInt32) async throws -> NL80211Wiphy {
         // Setup which command to run.
         let command = NL80211GetWiphyCommand(interface: interface)
-        let message = try newMessage(command, flags: [])
+        let message = try newMessage(command, flags: [.request])
         // Send the message.
         try await socket.send(message.data)
         // Retrieve the kernel's answer
