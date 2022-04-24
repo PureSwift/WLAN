@@ -33,27 +33,8 @@ public extension LinuxWLANManager {
             // start scanning on wireless interface.
             let interface = try self.interface(for: interface)
             
-            
-            var attemptCount = 0
-            while attemptCount < 5 {
-                do { try await triggerScan(interface: interface.id) }
-                catch let errorMessage as NetlinkErrorMessage {
-                    if errorMessage.error == .resourceBusy {
-                        try await Task.sleep(nanoseconds: 1_000_000_000)
-                        attemptCount += 1
-                        continue
-                    } else {
-                        throw errorMessage.error ?? errorMessage
-                    }
-                }
-            }
-            
-            // wait
-            var messages = [NetlinkGenericMessage]()
-            repeat {
-                // attempt to read messages
-                messages += try await socket.recieve(NetlinkGenericMessage.self)
-            } while (messages.contains(where: { $0.command == NetlinkGenericCommand.NL80211.newScanResults }) == false)
+            try await triggerScan(interface: interface.id)
+            try await Task.sleep(nanoseconds: 3 * 1_000_000_000)
             
             // collect results
             let scanResults = try await scanResults(interface: interface.id)
