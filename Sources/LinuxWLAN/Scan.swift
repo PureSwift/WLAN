@@ -32,7 +32,21 @@ public extension LinuxWLANManager {
         do {
             // start scanning on wireless interface.
             let interface = try self.interface(for: interface)
-            try await triggerScan(interface: interface.id)
+            
+            
+            var attemptCount = 0
+            while attemptCount < 5 {
+                do { try await triggerScan(interface: interface.id) }
+                catch let errorMessage as NetlinkErrorMessage {
+                    if errorMessage.error == .resourceBusy {
+                        try await Task.sleep(nanoseconds: 1_000_000_000)
+                        attemptCount += 1
+                        continue
+                    } else {
+                        throw errorMessage.error ?? errorMessage
+                    }
+                }
+            }
             
             // wait
             var messages = [NetlinkGenericMessage]()
@@ -49,8 +63,8 @@ public extension LinuxWLANManager {
                 return WLANNetwork(ssid: ssid, bssid: BSSID(bigEndian: BSSID(bytes: $0.bss.bssid.bytes)))
             }
         }
-        catch let error as NetlinkErrorMessage {
-            throw error.error ?? error
+        catch let errorMessage as NetlinkErrorMessage {
+            throw errorMessage.error ?? errorMessage
         }
     }
 }
