@@ -38,11 +38,7 @@ public extension LinuxWLANManager {
             
             // collect results
             let scanResults = try await scanResults(interface: interface.id)
-            return scanResults.map {
-                let ssidLength = min(Int($0.bss.informationElements[1]), 32)
-                let ssid = SSID(data: $0.bss.informationElements[2 ..< 2 + ssidLength]) ?? ""
-                return WLANNetwork(ssid: ssid, bssid: BSSID(bigEndian: BSSID(bytes: $0.bss.bssid.bytes)))
-            }
+            return scanResults.map { self.cache($0) }
         }
         catch let errorMessage as NetlinkErrorMessage {
             throw errorMessage.error ?? errorMessage

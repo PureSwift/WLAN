@@ -36,6 +36,8 @@ public actor LinuxWLANManager: WLANManager {
     
     internal private(set) var interfaceCache = [WLANInterface: InterfaceCache]()
     
+    internal private(set) var scanCache = [WLANNetwork: NL80211ScanResult]()
+    
     // MARK: - Initialization
     
     public init() async throws {
@@ -160,6 +162,16 @@ public actor LinuxWLANManager: WLANManager {
                 continue
             }
         }
+    }
+    
+    @discardableResult
+    internal func cache(_ scanResult: NL80211ScanResult) -> WLANNetwork {
+        let ssidLength = min(Int(scanResult.bss.informationElements[1]), 32)
+        let ssid = SSID(data: scanResult.bss.informationElements[2 ..< 2 + ssidLength]) ?? ""
+        let bssid = BSSID(bigEndian: BSSID(bytes: scanResult.bss.bssid.bytes))
+        let network = WLANNetwork(ssid: ssid, bssid: bssid)
+        self.scanCache[network] = scanResult
+        return network
     }
 }
 
