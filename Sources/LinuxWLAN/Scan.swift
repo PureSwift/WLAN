@@ -37,10 +37,10 @@ public extension LinuxWLANManager {
                 else { throw Errno.notSupported }
         
             // subscribe to group
-            try socket.subscribe(to: scanGroup.identifier)
+            try socket.subscribe(to: scanGroup.id)
             do {
                 // stop listening to scan results
-                defer { try? socket.unsubscribe(from: scanGroup.identifier) }
+                defer { try? socket.unsubscribe(from: scanGroup.id) }
                 
                 // start scanning on wireless interface.
                 try await triggerScan(interface: interface.id)

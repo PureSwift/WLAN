@@ -115,7 +115,7 @@ public actor LinuxWLANManager: WLANManager {
         payload: Data = Data()
     ) -> NetlinkGenericMessage {
         return NetlinkGenericMessage(
-            type: NetlinkMessageType(rawValue: UInt16(controller.identifier.rawValue)),
+            type: NetlinkMessageType(rawValue: UInt16(controller.id.rawValue)),
             flags: flags,
             sequence: newSequence(),
             process: ProcessID.current.rawValue,
