@@ -15,7 +15,7 @@ import Darwin
 import SystemPackage
 
 /// UNIX Network Interface
-internal struct NetworkInterface {
+internal struct NetworkInterface: Equatable, Hashable {
     
     /// Interface name.
     public let name: String

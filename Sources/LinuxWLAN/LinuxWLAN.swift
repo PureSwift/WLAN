@@ -34,7 +34,7 @@ public actor LinuxWLANManager: WLANManager {
     
     internal private(set) var sequenceNumber: UInt32 = 0
     
-    internal private(set) var interfaceCache = [WLANInterface: NL80211Wiphy]()
+    internal private(set) var interfaceCache = [WLANInterface: InterfaceCache]()
     
     // MARK: - Initialization
     
@@ -99,7 +99,7 @@ public actor LinuxWLANManager: WLANManager {
     
     // MARK: - Internal Methods
     
-    internal func interface(for interfaceName: WLANInterface) throws -> NL80211Wiphy {
+    internal func interface(for interfaceName: WLANInterface) throws -> InterfaceCache {
         guard let interface = interfaceCache[interfaceName] else {
             throw WLANError.invalidInterface(interfaceName)
         }
@@ -147,10 +147,15 @@ public actor LinuxWLANManager: WLANManager {
         self.interfaceCache.reserveCapacity(interfaces.count)
         for interface in interfaces {
             do {
-                let id = try NetworkInterface.index(for: interface)
-                let interface = try await getWiphy(id)
                 let key = WLANInterface(name: interface.name)
-                self.interfaceCache[key] = interface
+                let id = try NetworkInterface.index(for: interface)
+                let wiphy = try await getWiphy(id)
+                let cacheValue = InterfaceCache(
+                    id: id,
+                    interface: interface,
+                    wiphy: wiphy
+                )
+                self.interfaceCache[key] = cacheValue
             } catch {
                 continue
             }
@@ -159,6 +164,18 @@ public actor LinuxWLANManager: WLANManager {
 }
 
 // MARK: - Supporting Types
+
+internal extension LinuxWLANManager {
+    
+    struct InterfaceCache: Equatable, Hashable, Identifiable {
+        
+        let id: UInt32
+        
+        let interface: NetworkInterface
+        
+        let wiphy: NL80211Wiphy
+    }
+}
 
 internal protocol NetlinkWLANMessage: Encodable {
     
