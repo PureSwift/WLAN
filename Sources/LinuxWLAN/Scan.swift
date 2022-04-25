@@ -36,15 +36,13 @@ public extension LinuxWLANManager {
             guard let scanGroup = controller.multicastGroups.first(where: { $0.name == NetlinkGenericMulticastGroupName.NL80211.scan })
                 else { throw Errno.notSupported }
         
-            // subscribe to group
-            try socket.subscribe(to: scanGroup.id)
             do {
+                // subscribe to group
+                try socket.subscribe(to: scanGroup.id)
                 // stop listening to scan results
                 defer { try? socket.unsubscribe(from: scanGroup.id) }
-                
                 // start scanning on wireless interface.
                 try await triggerScan(interface: interface.id)
-                
                 // wait
                 var messages = [NetlinkGenericMessage]()
                 repeat {
@@ -98,6 +96,6 @@ internal extension LinuxWLANManager {
         // Retrieve the kernel's answer
         let messages = try await socket.recieve(NetlinkGenericMessage.self)
         let decoder = NetlinkAttributeDecoder()
-        return try messages.map { try decoder.decode(NL80211ScanResult.self, from: $0) }
+        return messages.compactMap { try? decoder.decode(NL80211ScanResult.self, from: $0) }
     }
 }
