@@ -86,7 +86,7 @@ public actor LinuxWLANManager: WLANManager {
      - Parameter power: A Boolean value corresponding to the power state. NO indicates the "OFF" state.
      - Parameter interface: The network interface.
      */
-    public func setPower(_ power: Bool, for interface: WLANInterface) throws {
+    public func setPower(_ power: Bool, for interface: WLANInterface) async throws {
         
     }
     
@@ -95,7 +95,7 @@ public actor LinuxWLANManager: WLANManager {
      
      This method has no effect if the interface is not associated to a network.
      */
-    public func disassociate(interface: WLANInterface) throws {
+    public func disassociate(interface: WLANInterface) async throws {
         
     }
     
