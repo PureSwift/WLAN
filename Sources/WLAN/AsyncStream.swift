@@ -117,6 +117,7 @@ internal struct AsyncIndefiniteStream <Element>: AsyncSequence {
                 }
             }
             storage.continuation = continuation
+            #if swift(>=5.6)
             continuation.onTermination = { [weak storage] in
                 switch $0 {
                 case .cancelled:
@@ -125,6 +126,7 @@ internal struct AsyncIndefiniteStream <Element>: AsyncSequence {
                     break
                 }
             }
+            #endif
             storage.onTermination = {
                 // cancel task when `stop` is called
                 task.cancel()
