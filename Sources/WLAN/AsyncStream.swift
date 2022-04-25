@@ -145,6 +145,7 @@ internal struct AsyncIndefiniteStream <Element>: AsyncSequence {
         storage.onTermination = onTermination
         let stream = AsyncThrowingStream<Element, Error>(Element.self, bufferingPolicy: .bufferingNewest(bufferSize)) { continuation in
             storage.continuation = continuation
+            #if swift(>=5.6)
             continuation.onTermination = { [weak storage] in
                 switch $0 {
                 case .cancelled:
@@ -153,6 +154,7 @@ internal struct AsyncIndefiniteStream <Element>: AsyncSequence {
                     break
                 }
             }
+            #endif
             build(Continuation(continuation))
         }
         storage.stream = stream
