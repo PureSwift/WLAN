@@ -45,7 +45,10 @@ struct WLANTool {
         var counter = 0
         for try await network in stream {
             counter += 1
-            print("\(counter). \(network.ssid) \(network.bssid?.description ?? "")")
+            print("\(counter). \(network.ssid)")
+            if network.bssid != .zero {
+                print("   " + network.bssid.rawValue)
+            }
         }
         print("Found \(counter) networks")
     }

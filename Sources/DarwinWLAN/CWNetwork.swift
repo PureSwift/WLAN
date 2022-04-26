@@ -19,11 +19,11 @@ internal extension WLANNetwork {
             let ssid = SSID(data: ssidData)
             else { fatalError("Invalid values") }
         
-        let bssid: BSSID?
+        let bssid: BSSID
         if let bssidString = coreWLAN.bssid {
-            bssid = BSSID(rawValue: bssidString)
+            bssid = BSSID(rawValue: bssidString) ?? .zero
         } else {
-            bssid = nil
+            bssid = .zero // dont have permissions
         }
         
         self.init(ssid: ssid, bssid: bssid)

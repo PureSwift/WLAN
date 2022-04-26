@@ -19,10 +19,10 @@ public struct WLANNetwork: Equatable, Hashable {
     public let ssid: SSID
     
     /// The basic service set identifier (BSSID) for the network. 
-    public let bssid: BSSID?
+    public let bssid: BSSID
     
     public init(ssid: SSID,
-                bssid: BSSID? = nil) {
+                bssid: BSSID) {
         
         self.ssid = ssid
         self.bssid = bssid
