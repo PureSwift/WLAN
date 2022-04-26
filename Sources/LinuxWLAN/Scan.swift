@@ -46,25 +46,22 @@ public extension LinuxWLANManager {
                     // wait
                     while Task.isCancelled == false {
                         do {
-                            // subscribe to group
-                            try? socket.subscribe(to: scanGroup.id)
                             // attempt to read messages
                             let messages = try await socket.recieve(NetlinkGenericMessage.self)
                             let hasNewScanResults = messages.contains(where: { $0.command == NetlinkGenericCommand.NL80211.newScanResults })
                             guard hasNewScanResults else {
-                                try await Task.sleep(nanoseconds: 1_000_000_000)
+                                try await Task.sleep(nanoseconds: 100_000_000)
                                 continue
                             }
-                            // fetch results
-                            try? socket.unsubscribe(from: scanGroup.id)
                             let scanResults = try await scanResults(interface: interface.id)
                             // cache new results
                             for scanResult in scanResults {
                                 let key = WLANNetwork(scanResult)
-                                guard self.scanCache.keys.contains(key) == false else {
-                                    continue
+                                let isNew = self.scanCache.keys.contains(key) == false
+                                self.cache(scanResult)
+                                if isNew {
+                                    continuation.yield(key)
                                 }
-                                continuation.yield(key)
                             }
                         }
                         catch _ as NetlinkErrorMessage {
