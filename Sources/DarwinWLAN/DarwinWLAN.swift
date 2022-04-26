@@ -25,6 +25,10 @@ public final class DarwinWLANManager: WLANManager {
     
     // MARK: - Initialization
     
+    deinit {
+        client.delegate = nil
+    }
+    
     public init() {
         self.client = CWWiFiClient()
         self.client.delegate = self
@@ -94,18 +98,46 @@ public final class DarwinWLANManager: WLANManager {
      */
     public func scan(
         with interface: WLANInterface
-    ) async throws -> [WLANNetwork] {
+    ) async throws -> AsyncWLANScan<DarwinWLANManager> {
+        return AsyncWLANScan { continuation in
+            let task = Task {
+                var foundNetworks = Set<WLANNetwork>()
+                while Task.isCancelled == false {
+                    do {
+                        let networks = try await self._scan(with: interface)
+                        for network in networks {
+                            // yield new values only
+                            guard foundNetworks.contains(network) == false else {
+                                return
+                            }
+                            foundNetworks.insert(network)
+                            continuation.yield(network)
+                        }
+                    }
+                    catch {
+                        continuation.finish(throwing: error)
+                    }
+                }
+            }
+            // make child task, cancel
+            continuation.onTermination = {
+                task.cancel()
+            }
+        }
+    }
+    
+    internal func _scan(
+        with interface: WLANInterface
+    ) async throws -> Set<WLANNetwork> {
         return try await withCheckedThrowingContinuation { continuation in
             queue.async { [unowned self] in
                 do {
                     let interface = try self.client.interface(for: interface)
-                    try interface.scanForNetworks(withSSID: nil)
-                    let cachedScanResults = (interface.cachedScanResults() ?? [])
-                        .lazy
-                        .map { WLANNetwork($0) }
-                        .sorted(by: { $0.ssid.description < $1.ssid.description })
-                    continuation.resume(returning: cachedScanResults)
-                } catch {
+                    let networks = try interface.scanForNetworks(withSSID: nil) // blocking call
+                    let value = Set(networks.lazy.map({ WLANNetwork($0) }))
+                    continuation.resume(returning: value)
+                }
+                catch {
                     continuation.resume(throwing: error)
                 }
             }
