@@ -48,6 +48,9 @@ public actor LinuxWLANManager: WLANManager {
         let controller = try await socket.resolve(name: .nl80211)  // Find the "nl80211" driver ID.
         self.socket = socket
         self.controller = controller
+        // allocate buffer
+        self.interfaceCache.reserveCapacity(10)
+        self.scanCache.reserveCapacity(10)
     }
     
     // MARK: - Methods
@@ -166,12 +169,13 @@ public actor LinuxWLANManager: WLANManager {
     
     @discardableResult
     internal func cache(_ scanResult: NL80211ScanResult) -> WLANNetwork {
-        let ssidLength = min(Int(scanResult.bss.informationElements[1]), 32)
-        let ssid = SSID(data: scanResult.bss.informationElements[2 ..< 2 + ssidLength]) ?? ""
-        let bssid = BSSID(bigEndian: BSSID(bytes: scanResult.bss.bssid.bytes))
-        let network = WLANNetwork(ssid: ssid, bssid: bssid)
+        let network = WLANNetwork(scanResult)
         self.scanCache[network] = scanResult
         return network
+    }
+    
+    internal func resetScanResultsCache() {
+        self.scanCache.removeAll(keepingCapacity: true)
     }
 }
 

@@ -27,38 +27,56 @@ public extension LinuxWLANManager {
      
      - Parameter interface: The network interface.
      */
-    func scan(with interface: WLANInterface) async throws -> [WLANNetwork] {
+    func scan(with interface: WLANInterface) async throws -> AsyncWLANScan<LinuxWLANManager> {
         do {
             // get cached interface index
             let interface = try self.interface(for: interface)
-            
             // register for `scan` multicast group
             guard let scanGroup = controller.multicastGroups.first(where: { $0.name == NetlinkGenericMulticastGroupName.NL80211.scan })
                 else { throw Errno.notSupported }
-        
-            do {
-                // subscribe to group
-                try socket.subscribe(to: scanGroup.id)
-                // stop listening to scan results
-                defer { try? socket.unsubscribe(from: scanGroup.id) }
-                // start scanning on wireless interface.
-                try await triggerScan(interface: interface.id)
-                // wait
-                var messages = [NetlinkGenericMessage]()
-                repeat {
-                    do {
-                        // attempt to read messages
-                        messages += try await socket.recieve(NetlinkGenericMessage.self)
+            // subscribe to group
+            try socket.subscribe(to: scanGroup.id)
+            // start scanning on wireless interface.
+            try await triggerScan(interface: interface.id)
+            // reset cache
+            resetScanResultsCache()
+            // stream
+            return AsyncWLANScan { continuation in
+                let task = Task {
+                    // wait
+                    while Task.isCancelled == false {
+                        do {
+                            // subscribe to group
+                            try? socket.subscribe(to: scanGroup.id)
+                            // attempt to read messages
+                            let messages = try await socket.recieve(NetlinkGenericMessage.self)
+                            let hasNewScanResults = messages.contains(where: { $0.command == NetlinkGenericCommand.NL80211.newScanResults })
+                            guard hasNewScanResults else {
+                                try await Task.sleep(nanoseconds: 1_000_000_000)
+                                continue
+                            }
+                            // fetch results
+                            try? socket.unsubscribe(from: scanGroup.id)
+                            let scanResults = try await scanResults(interface: interface.id)
+                            // cache new results
+                            for scanResult in scanResults {
+                                let key = WLANNetwork(scanResult)
+                                guard self.scanCache.keys.contains(key) == false else {
+                                    continue
+                                }
+                                continuation.yield(key)
+                            }
+                        }
+                        catch _ as NetlinkErrorMessage {
+                            continue
+                        }
                     }
-                    catch _ as NetlinkErrorMessage {
-                        continue
-                    }
-                } while (messages.contains(where: { $0.command == NetlinkGenericCommand.NL80211.newScanResults }) == false)
+                }
+                continuation.onTermination = { [weak socket] in
+                    try? socket?.unsubscribe(from: scanGroup.id)
+                    task.cancel()
+                }
             }
-            
-            // collect results
-            let scanResults = try await scanResults(interface: interface.id)
-            return scanResults.map { self.cache($0) }
         }
         catch let errorMessage as NetlinkErrorMessage {
             throw errorMessage.error ?? errorMessage
@@ -97,5 +115,15 @@ internal extension LinuxWLANManager {
         let messages = try await socket.recieve(NetlinkGenericMessage.self)
         let decoder = NetlinkAttributeDecoder()
         return messages.compactMap { try? decoder.decode(NL80211ScanResult.self, from: $0) }
+    }
+}
+
+internal extension WLANNetwork {
+    
+    init(_ scanResult: NL80211ScanResult) {
+        let ssidLength = min(Int(scanResult.bss.informationElements[1]), 32)
+        let ssid = SSID(data: scanResult.bss.informationElements[2 ..< 2 + ssidLength]) ?? ""
+        let bssid = BSSID(bigEndian: BSSID(bytes: scanResult.bss.bssid.bytes))
+        self.init(ssid: ssid, bssid: bssid)
     }
 }
