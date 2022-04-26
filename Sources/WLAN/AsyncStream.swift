@@ -7,11 +7,14 @@
 
 import Foundation
 
+/// WLAN Async Scan sequence
 public struct AsyncWLANScan <WLAN: WLANManager>: AsyncSequence {
 
     public typealias Element = WLANNetwork
     
-    let storage: AsyncIndefiniteStream<Element>.Storage
+    internal typealias Storage = AsyncIndefiniteStream<Element>.Storage
+    
+    let storage: Storage
     
     public init(
         bufferSize: Int = 100,
@@ -22,11 +25,10 @@ public struct AsyncWLANScan <WLAN: WLANManager>: AsyncSequence {
     
     public init(
         bufferSize: Int = 100,
-        onTermination: @escaping () -> (),
         _ build: (Continuation) -> ()
     ) {
-        let stream = AsyncIndefiniteStream<Element>(bufferSize: bufferSize, onTermination: onTermination) {
-            build(Continuation($0.continuation))
+        let stream = AsyncIndefiniteStream<Element>(bufferSize: bufferSize) {
+            build(Continuation($0.continuation, $0.storage))
         }
         self.init(stream)
     }
@@ -67,12 +69,23 @@ public extension AsyncWLANScan {
 
 public extension AsyncWLANScan {
     
-    struct Continuation {
+    final class Continuation {
         
         let continuation: AsyncThrowingStream<Element, Error>.Continuation
         
-        init(_ continuation: AsyncThrowingStream<Element, Error>.Continuation) {
+        let storage: Storage
+        
+        fileprivate init(
+            _ continuation: AsyncThrowingStream<Element, Error>.Continuation,
+            _ storage: Storage
+        ) {
             self.continuation = continuation
+            self.storage = storage
+        }
+        
+        public var onTermination: (() -> ())? {
+            get { storage.onTermination }
+            set { storage.onTermination = newValue }
         }
         
         public func yield(_ value: Element) {
@@ -138,11 +151,9 @@ internal struct AsyncIndefiniteStream <Element>: AsyncSequence {
     
     public init(
         bufferSize: Int = 100,
-        onTermination: @escaping () -> (),
         _ build: (Continuation) -> ()
     ) {
         let storage = Storage()
-        storage.onTermination = onTermination
         let stream = AsyncThrowingStream<Element, Error>(Element.self, bufferingPolicy: .bufferingNewest(bufferSize)) { continuation in
             storage.continuation = continuation
             #if swift(>=5.6)
@@ -155,7 +166,7 @@ internal struct AsyncIndefiniteStream <Element>: AsyncSequence {
                 }
             }
             #endif
-            build(Continuation(continuation))
+            build(Continuation(continuation, storage))
         }
         storage.stream = stream
         self.storage = storage
@@ -180,7 +191,7 @@ extension AsyncIndefiniteStream {
         
         private(set) var iterator: AsyncThrowingStream<Element, Error>.AsyncIterator
         
-        init(_ iterator: AsyncThrowingStream<Element, Error>.AsyncIterator) {
+        fileprivate init(_ iterator: AsyncThrowingStream<Element, Error>.AsyncIterator) {
             self.iterator = iterator
         }
         
@@ -193,12 +204,23 @@ extension AsyncIndefiniteStream {
 
 extension AsyncIndefiniteStream {
     
-    struct Continuation {
+    final class Continuation {
         
         let continuation: AsyncThrowingStream<Element, Error>.Continuation
         
-        init(_ continuation: AsyncThrowingStream<Element, Error>.Continuation) {
+        let storage: Storage
+        
+        fileprivate init(
+            _ continuation: AsyncThrowingStream<Element, Error>.Continuation,
+            _ storage: Storage
+        ) {
             self.continuation = continuation
+            self.storage = storage
+        }
+        
+        public var onTermination: (() -> ())? {
+            get { storage.onTermination }
+            set { storage.onTermination = newValue }
         }
         
         public func yield(_ value: Element) {
@@ -232,7 +254,7 @@ internal extension AsyncIndefiniteStream {
         
         var continuation: AsyncThrowingStream<Element, Error>.Continuation!
         
-        var onTermination: (() -> ())!
+        var onTermination: (() -> ())?
         
         deinit {
             stop()
@@ -249,7 +271,7 @@ internal extension AsyncIndefiniteStream {
             guard _isExecuting else { return }
             _isExecuting = false
             // cleanup / stop scanning / cancel child task
-            onTermination()
+            onTermination?()
         }
         
         func makeAsyncIterator() -> AsyncIterator {

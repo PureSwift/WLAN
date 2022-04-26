@@ -32,7 +32,7 @@ public protocol WLANManager: AnyObject {
      
      - Parameter interface: The network interface.
      */
-    func scan(with interface: WLANInterface) async throws -> [WLANNetwork]
+    func scan(with interface: WLANInterface) async throws -> AsyncWLANScan<Self>
     
     /**
      Sets the interface power state.
